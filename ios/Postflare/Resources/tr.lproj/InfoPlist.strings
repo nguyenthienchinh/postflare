@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "Postflare";
+"NSCameraUsageDescription" = "Postflare, web uygulamasında gösterilen giriş QR kodunu okumak için kamerayı kullanır.";
+"NSFaceIDUsageDescription" = "Postflare, bilgisayarındaki girişleri onaylamak için Face ID kullanır.";
+"NSPhotoLibraryUsageDescription" = "Postflare, seçtiğin fotoğraf ve videoları gönderilerine ekler.";

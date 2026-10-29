@@ -1,0 +1,43 @@
+name: Platform request
+description: Ask for a new social network / destination, or for missing features of an existing one.
+labels: ["platform"]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: e.g. Snapchat Spotlight
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request type
+      options:
+        - New platform
+        - Missing feature of a supported platform (post type, setting, analytics...)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What should be supported?
+      description: Post types (text, images, video, stories, threads...), settings and analytics you need.
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: Official API documentation
+      description: Link to the platform's publishing API. Postflare only uses official APIs.
+  - type: textarea
+    id: access
+    attributes:
+      label: API access requirements
+      description: App review, paid tiers, business accounts... if you know them.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I can help build or test it (see docs/provider-brief.md).

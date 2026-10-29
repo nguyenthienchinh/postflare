@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+  --color-brand-800: #9a3412;
+  --color-brand-900: #7c2d12;
+  --color-brand-950: #431407;
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-slide-in: slide-in 0.2s ease-out;
+  --animate-pop: pop 0.15s ease-out;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-in {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes pop {
+    from { transform: scale(0.97) translateY(4px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+/*
+ * Chart tokens (dataviz reference palette, validated against the card surfaces: white / zinc-900).
+ * Series 1 = views (blue), series 2 = engagements (orange). Text never wears a series color.
+ */
+:root {
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  --viz-muted-mark: #c3c2b7;
+  --viz-grid: #ececea;
+  --viz-axis: #c3c2b7;
+  --viz-ink-muted: #75736e;
+  --viz-surface: #ffffff;
+  --viz-delta-up: #006300;
+  --viz-delta-down: #d03b3b;
+  /* Status palette (mode-invariant; always shown with an icon + label, never color alone). */
+  --viz-status-good: #0ca30c;
+  --viz-status-warning: #fab219;
+  --viz-status-critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --viz-series-1: #3987e5;
+    --viz-series-2: #d95926;
+    --viz-muted-mark: #52514e;
+    --viz-grid: #2a2a2d;
+    --viz-axis: #3f3f46;
+    --viz-ink-muted: #9b9a94;
+    --viz-surface: #18181b;
+    --viz-delta-up: #0ca30c;
+    --viz-delta-down: #e66767;
+  }
+}

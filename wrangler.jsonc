@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "postflare",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Custom domain, PUBLIC_URL, DEMO_MODE...: put your own config in the git-ignored wrangler.local.jsonc
+  // (see wrangler.local.example.jsonc and "Custom domain / personal config" in the README).
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/", "/demo", "/privacy", "/privacy/", "/terms", "/terms/", "/data-deletion", "/data-deletion/", "/api/*", "/oauth/*", "/m/*", "/u/*", "/a/*", "/mcp", "/mcp/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "postflare", "migrations_dir": "migrations","database_id": "3e49c944-9188-416d-87d2-073038740117" }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "postflare-media","preview_bucket_name": "postflare-media" }
+  ],
+  "workflows": [
+    { "name": "postflare-publish", "binding": "PUBLISH_WORKFLOW", "class_name": "PublishWorkflow" }
+  ],
+  "images": { "binding": "IMAGES" },
+  "triggers": { "crons": ["*/5 * * * *"] }
+}

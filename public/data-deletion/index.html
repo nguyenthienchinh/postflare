@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Deletion · Postflare</title><link rel="icon" href="/favicon.svg">
+<style>:root{color-scheme:light dark;font-family:-apple-system,system-ui,sans-serif;line-height:1.6}body{max-width:720px;margin:0 auto;padding:40px 20px}h1{font-size:28px}h2{font-size:18px;margin-top:28px}.muted{color:#888}#status{padding:12px 16px;border-radius:8px;border:1px solid #8884}</style>
+<script src="/data-deletion/status.js" defer></script>
+</head><body><p><a href="/">Postflare</a></p><h1>Data Deletion</h1>
+<section id="status" hidden><h2 style="margin-top:0">Your deletion request</h2><p id="status-text" class="muted">Looking up your request…</p></section>
+<p>Postflare is open-source, self-hosted social media scheduling software. This instance stores, for each social media account connected to it, the access tokens issued by the platform, basic profile information (account id, display name, username and avatar), the posts scheduled for that account and their performance metrics. Here is how to have that data deleted.</p>
+<h2>1. Remove the account in Postflare</h2>
+<p>In Postflare, open <strong>Accounts</strong>, pick the account and choose <strong>Remove</strong>. This deletes its stored access tokens and profile data, the posts scheduled for it and their metrics, and stops anything still scheduled.</p>
+<h2>2. Revoke access on the platform</h2>
+<p>On TikTok, open <em>Profile → Menu (☰) → Settings and privacy → Security → Manage app permissions</em> and remove this app; on YouTube, remove it at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Postflare then can no longer use the account; remove it in Postflare (step 1) to delete the data stored here.</p>
+<p>You can also remove this instance's app from your Meta account: on Facebook, <em>Settings and privacy → Settings → Apps and websites</em>; on Instagram, <em>Settings → Website permissions → Apps and websites</em>; on Threads, <em>Settings → Account → Website permissions</em>. When you remove it and ask for your data to be deleted, Meta notifies this instance automatically and every account you connected with that login is removed as described above. Meta then gives you a confirmation code and a link to this page to check the status.</p>
+<h2>3. Contact the operator</h2>
+<p>For anything else, or to have your data deleted another way, contact the operator of this Postflare instance.</p>
+<p class="muted">See also the <a href="/privacy/">Privacy Policy</a> and <a href="/terms/">Terms of Service</a>.</p>
+</body></html>

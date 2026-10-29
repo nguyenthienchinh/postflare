@@ -1,0 +1,43 @@
+{
+  "name": "postflare",
+  "version": "0.3.0",
+  "description": "Command line client for Postflare, the self-hosted social media scheduler on Cloudflare: schedule posts, upload media, read analytics.",
+  "license": "AGPL-3.0-only",
+  "author": "Ferdi",
+  "homepage": "https://github.com/FerdiKT/postflare/tree/main/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FerdiKT/postflare.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/FerdiKT/postflare/issues"
+  },
+  "type": "module",
+  "bin": {
+    "postflare": "dist/cli.js",
+    "pf": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "postflare",
+    "social media",
+    "scheduler",
+    "cli",
+    "instagram",
+    "tiktok",
+    "bluesky",
+    "cloudflare"
+  ],
+  "scripts": {
+    "build": "node ../scripts/embed-skill.mjs && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "prepublishOnly": "npm run build"
+  }
+}

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld accounts</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld account</string>
+			<key>other</key>
+			<string>%lld accounts</string>
+		</dict>
+	</dict>
+	<key>%lld accounts need reconnecting</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld account needs reconnecting</string>
+			<key>other</key>
+			<string>%lld accounts need reconnecting</string>
+		</dict>
+	</dict>
+	<key>%lld attempts</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld attempt</string>
+			<key>other</key>
+			<string>%lld attempts</string>
+		</dict>
+	</dict>
+	<key>%lld follow-ups</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld follow-up</string>
+			<key>other</key>
+			<string>%lld follow-ups</string>
+		</dict>
+	</dict>
+	<key>Trial: %lld days left</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Trial: %#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld day left</string>
+			<key>other</key>
+			<string>%lld days left</string>
+		</dict>
+	</dict>
+	<key>Includes %lld follow-ups from the original post</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Includes %#@n@ from the original post</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld follow-up</string>
+			<key>other</key>
+			<string>%lld follow-ups</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

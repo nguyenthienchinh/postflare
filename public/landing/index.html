@@ -1,0 +1,824 @@
+<!doctype html>
+<!--
+  LAUNCH FLAG: data-launched="false" shows GitHub / Deploy to Cloudflare as "Coming soon" pills (the default markup, also
+  without JS). Set it to "true" on launch day: the script at the end turns every [data-launch-href] pill back into a
+  real link and hides [data-prelaunch] elements. X profile for "Follow for launch updates": the href of #follow-x
+  (hero); every other [data-follow] link copies it. See docs/RELEASING.md "Launch day checklist".
+-->
+<html lang="en" data-launched="true">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Postflare: open-source social media scheduler on Cloudflare</title>
+<meta name="description" content="Postflare is an open-source, self-hosted social media scheduler. Compose once, schedule on a calendar and publish to 36 networks including Instagram, TikTok, YouTube, X, LinkedIn and Threads, from your own Cloudflare account. A serverless, Postiz-inspired alternative that runs on the Workers Free plan.">
+<meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/brand/postflare-logo-1024.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Postflare">
+<meta property="og:title" content="Postflare: schedule and publish to every social network from your own Cloudflare account">
+<meta property="og:description" content="Open-source social media scheduler. Compose once, publish to 36 networks. Runs on the Cloudflare Workers Free plan.">
+<meta property="og:image" content="/brand/postflare-og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Postflare logo and tagline">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/brand/postflare-og.png">
+<script>
+  // Theme override for previews: ?theme=dark|light. Runs before paint to avoid a flash.
+  (function () {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "dark" || t === "light") document.documentElement.classList.add(t);
+    document.documentElement.classList.add("js");
+  })();
+</script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#fafafa;--fg:#09090b;--fg2:#3f3f46;--mut:#71717a;--line:rgba(9,9,11,.08);--line2:rgba(9,9,11,.14);
+  --card:#ffffff;--card2:#f4f4f5;--glass:rgba(255,255,255,.72);--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px -8px rgba(0,0,0,.12);
+  --o:#fb923c;--r:#e11d48;--grad:linear-gradient(135deg,#fb923c,#e11d48);--accent:#e8590c;--ok:#16a34a;--warn:#d97706;
+  --glow:rgba(249,115,22,.22);--blob1:rgba(251,146,60,.30);--blob2:rgba(225,29,72,.20);
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not(.light){
+  --bg:#09090b;--bg2:#0c0c0f;--fg:#fafafa;--fg2:#d4d4d8;--mut:#a1a1aa;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+  --card:#111114;--card2:#18181b;--glass:rgba(9,9,11,.66);--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 12px 32px -12px rgba(0,0,0,.7);
+  --accent:#fb923c;--ok:#4ade80;--warn:#fbbf24;--glow:rgba(249,115,22,.28);--blob1:rgba(251,146,60,.20);--blob2:rgba(225,29,72,.18);color-scheme:dark}}
+:root.dark{
+  --bg:#09090b;--bg2:#0c0c0f;--fg:#fafafa;--fg2:#d4d4d8;--mut:#a1a1aa;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+  --card:#111114;--card2:#18181b;--glass:rgba(9,9,11,.66);--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 12px 32px -12px rgba(0,0,0,.7);
+  --accent:#fb923c;--ok:#4ade80;--warn:#fbbf24;--glow:rgba(249,115,22,.28);--blob1:rgba(251,146,60,.20);--blob2:rgba(225,29,72,.18);color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+a{color:inherit}
+img,svg{display:block}
+.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.skip{position:absolute;left:12px;top:-60px;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;z-index:100;text-decoration:none}
+.skip:focus{top:12px}
+
+/* Background */
+.bg{position:absolute;inset:0 0 auto;height:1100px;overflow:hidden;pointer-events:none;z-index:0;mask-image:linear-gradient(#000 65%,transparent);-webkit-mask-image:linear-gradient(#000 65%,transparent)}
+.bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 75%);opacity:.7}
+.blob{position:absolute;border-radius:50%;will-change:transform}
+.blob.a{width:760px;height:760px;left:50%;top:-320px;margin-left:-60px;background:radial-gradient(circle,var(--blob1),transparent 62%);animation:drift1 18s ease-in-out infinite alternate}
+.blob.b{width:680px;height:680px;left:50%;top:-120px;margin-left:-640px;background:radial-gradient(circle,var(--blob2),transparent 62%);animation:drift2 22s ease-in-out infinite alternate}
+.bg::after{content:"";position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@keyframes drift1{to{transform:translate3d(-120px,80px,0) scale(1.08)}}
+@keyframes drift2{to{transform:translate3d(140px,40px,0) scale(.94)}}
+
+/* Nav */
+header.nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);background:var(--glass);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:650;font-size:17px;letter-spacing:-.01em}
+.brand svg{width:30px;height:30px}
+.nav nav{display:flex;gap:24px;margin-left:8px}
+.nav nav a{color:var(--mut);text-decoration:none;font-size:14px;transition:color .2s;white-space:nowrap}
+.nav nav a:hover{color:var(--fg)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font:600 15px/1 var(--sans);text-decoration:none;white-space:nowrap;transition:transform .2s,box-shadow .2s,background-color .2s,border-color .2s}
+.btn svg{width:18px;height:18px;fill:currentColor}
+.btn.sm{height:36px;padding:0 14px;border-radius:10px;font-size:14px}
+.btn.pri{color:#fff;background:var(--grad);box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 24px -8px rgba(225,29,72,.6)}
+.btn.pri:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 12px 28px -8px rgba(225,29,72,.75)}
+.btn.sec{color:var(--fg);background:var(--card);border:1px solid var(--line2);box-shadow:var(--shadow)}
+.btn.sec:hover{transform:translateY(-1px);border-color:var(--mut)}
+.btn.cf{color:#fff;background:#f38020;box-shadow:0 8px 24px -10px rgba(243,128,32,.8)}
+.btn.cf:hover{transform:translateY(-1px)}
+.btn .play{width:16px;height:16px}
+.btn.ghost{color:var(--fg2);background:transparent;padding:0 12px}
+.btn.ghost:hover{color:var(--fg);background:var(--card2)}
+.hero .ctas{gap:10px}
+.hero .ctas .btn:not(.ghost){padding:0 16px}
+/* Disabled "Sign up" with a Coming soon badge (hosted version not available yet) */
+.soon{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:36px;padding:0 6px 0 14px;border-radius:10px;border:1px dashed var(--line2);color:var(--mut);font:600 14px/1 var(--sans);white-space:nowrap;cursor:not-allowed;user-select:none}
+.soon b{font:700 10px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--accent);background:rgba(249,115,22,.12);padding:5px 7px;border-radius:6px}
+.soon.lg{height:44px;border-radius:12px;font-size:15px;padding:0 8px 0 20px}
+.soon.lg b{padding:7px 9px;border-radius:8px}
+/* Pre-launch: GitHub / Deploy buttons render as .soon pills until <html data-launched="true"> */
+.soon svg{width:16px;height:16px;fill:currentColor;opacity:.75}
+.soon.lg svg{width:18px;height:18px}
+.fsoon{cursor:not-allowed}
+.fsoon small{font-size:12px;opacity:.8}
+.btn.x{color:var(--bg);background:var(--fg);box-shadow:var(--shadow)}
+.btn.x:hover{transform:translateY(-1px);box-shadow:0 10px 24px -10px rgba(0,0,0,.45)}
+.btn.x svg{width:16px;height:16px}
+.soon-row{margin-top:12px}
+.soon-row .soon{gap:8px}
+.launch-note{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;font-size:15px;color:var(--fg2)}
+.launch-note::before{content:"";flex:none;margin-top:8px;width:8px;height:8px;border-radius:50%;background:var(--grad);box-shadow:0 0 0 4px var(--glow)}
+
+/* Hero */
+.hero{position:relative;padding:72px 0 40px}
+.hero .wrap{display:grid;grid-template-columns:1.02fr 1fr;align-items:center;gap:32px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:999px;border:1px solid var(--line2);background:var(--glass);font-size:13px;color:var(--fg2);text-decoration:none}
+.pill b{white-space:nowrap;font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--grad);padding:3px 8px;border-radius:999px}
+h1{font-size:clamp(40px,5.6vw,68px);line-height:1.02;letter-spacing:-.038em;font-weight:700;margin:22px 0 20px;text-wrap:balance}
+.gt{background:linear-gradient(100deg,#fb923c 0%,#f43f5e 55%,#e11d48 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:clamp(17px,1.5vw,19px);color:var(--fg2);max-width:560px;margin:0 0 30px;text-wrap:pretty}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:28px;color:var(--mut);font-size:14px}
+.meta span{display:inline-flex;align-items:center;gap:7px}
+.meta span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--grad)}
+
+/* Hero visual */
+.stage{--k:1;position:relative;width:calc(560px*var(--k));height:calc(560px*var(--k));justify-self:center}
+.orbit{position:absolute;left:0;top:0;width:560px;height:560px;transform:scale(var(--k));transform-origin:0 0}
+.orbit .circle{position:absolute;left:50%;top:50%;border-radius:50%;border:1px dashed var(--line2);transform:translate(-50%,-50%)}
+.orbit .circle.c1{width:364px;height:364px}
+.orbit .circle.c2{width:516px;height:516px;border-style:solid;border-color:var(--line)}
+.halo{position:absolute;left:50%;top:50%;width:380px;height:380px;margin:-190px 0 0 -190px;border-radius:50%;background:radial-gradient(circle,var(--glow),transparent 65%);animation:breathe 4.2s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.12);opacity:.7}}
+.ring{position:absolute;left:50%;top:50%;width:0;height:0;animation:spin 80s linear infinite}
+.ring.r2{animation-duration:120s;animation-direction:reverse}
+.slot{position:absolute;left:0;top:0;transform:rotate(var(--a))}
+.beam{position:absolute;left:0;top:-.5px;height:1px;width:var(--r);background:linear-gradient(90deg,rgba(251,146,60,0),rgba(251,146,60,.55));transform-origin:0 50%;transform:scaleX(0);opacity:0;animation:beam 4.2s cubic-bezier(.3,.7,.2,1) infinite;animation-delay:var(--d)}
+.spark{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(251,146,60,.5),0 0 14px 4px rgba(249,115,22,.75);opacity:0;animation:fly 4.2s cubic-bezier(.45,.05,.25,1) infinite;animation-delay:var(--d)}
+@keyframes beam{0%{transform:scaleX(0);opacity:0}10%{opacity:1}38%{transform:scaleX(1);opacity:.9}60%,100%{transform:scaleX(1);opacity:0}}
+@keyframes fly{0%{transform:translateX(70px) scale(.4);opacity:0}8%{opacity:1}36%{transform:translateX(calc(var(--r) - 26px)) scale(1);opacity:1}42%,100%{transform:translateX(calc(var(--r) - 26px)) scale(.2);opacity:0}}
+.orb{position:absolute;left:0;top:0;transform:translateX(var(--r)) rotate(calc(-1*var(--a)))}
+.orb .pi{position:absolute;left:-23px;top:-23px;animation:spin 80s linear infinite reverse}
+.r2 .orb .pi{animation:spin 120s linear infinite}
+.orb::before{content:"";position:absolute;left:-23px;top:-23px;width:46px;height:46px;border-radius:50%;border:2px solid rgba(249,115,22,.55);opacity:0;animation:pop 4.2s ease-out infinite;animation-delay:var(--d)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{0%,35%{transform:scale(.9);opacity:0}38%{opacity:1}62%,100%{transform:scale(1.7);opacity:0}}
+
+.post{position:absolute;left:50%;top:50%;width:204px;margin:-122px 0 0 -102px;border-radius:20px;background:var(--card);border:1px solid var(--line2);box-shadow:0 30px 60px -20px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.02) inset;padding:14px;z-index:3;animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+.post .hd{display:flex;align-items:center;gap:9px}
+.post .av{width:30px;height:30px;border-radius:9px;flex:none}
+.post .nm{font-size:13px;font-weight:600;line-height:1.2}
+.post .nm small{display:block;font-weight:400;color:var(--mut);font-size:11px}
+.post p{margin:9px 0;font-size:12px;line-height:1.45;color:var(--fg2)}
+.post .media{height:78px;border-radius:12px;background:radial-gradient(circle at 30% 20%,#fdba74,transparent 50%),radial-gradient(circle at 80% 90%,#be123c,transparent 55%),linear-gradient(135deg,#fb923c,#e11d48);position:relative;overflow:hidden}
+.post .media::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.35) 50%,transparent 65%);transform:translateX(-100%);animation:shine 4.2s ease-in-out infinite}
+@keyframes shine{0%,55%{transform:translateX(-100%)}85%,100%{transform:translateX(100%)}}
+.post .play{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center}
+.post .play::before{content:"";border-left:11px solid #e11d48;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+.post .ft{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:11.5px;color:var(--mut)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:11.5px;color:var(--fg2);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:ping 2.1s ease-out infinite}
+@keyframes ping{70%,100%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
+
+/* Platform icon tile */
+.pi{--ps:0 1px 2px rgba(0,0,0,.18);display:inline-grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--c);color:var(--f);box-shadow:var(--ps);flex:none;position:relative}
+.pi::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.pi svg{width:52%;height:52%;fill:currentColor}
+.pi b{font:700 15px/1 var(--sans);letter-spacing:-.02em}
+.pi.lg{width:46px;height:46px;border-radius:13px;--ps:0 10px 24px -8px rgba(0,0,0,.45)}
+.pi.lg b{font-size:18px}
+
+/* Sections */
+section{position:relative;padding:96px 0}
+.eyebrow{display:inline-block;font:600 13px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h2{font-size:clamp(30px,3.6vw,46px);line-height:1.08;letter-spacing:-.035em;font-weight:700;margin:0 0 16px;text-wrap:balance}
+.sub{color:var(--mut);font-size:18px;max-width:640px;margin:0;text-wrap:pretty}
+.head{margin-bottom:48px}
+.head.c{text-align:center}.head.c .sub{margin-inline:auto}
+.strip{padding:32px 0 8px;text-align:center;color:var(--mut);font-size:14px}
+.marquee{margin-top:18px;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee ul{display:flex;gap:14px;width:max-content;list-style:none;margin:0;padding:4px 0;animation:marq 60s linear infinite}
+.marquee li{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:14px;color:var(--fg2);white-space:nowrap}
+.marquee .pi{width:26px;height:26px;border-radius:50%}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* Bento */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;overflow:hidden;box-shadow:var(--shadow)}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(500px circle at var(--mx,50%) var(--my,-20%),rgba(251,146,60,.09),transparent 40%);pointer-events:none}
+.card h3{font-size:19px;letter-spacing:-.02em;margin:0 0 6px;line-height:1.3}
+.card p{margin:0;color:var(--mut);font-size:15px}
+.card .vis{margin-top:22px}
+.s3{grid-column:span 3}.s2{grid-column:span 2}.s4{grid-column:span 4}
+.ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--card2);border:1px solid var(--line);margin-bottom:16px;color:var(--accent)}
+.ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Composer mock */
+.comp{border:1px solid var(--line);border-radius:14px;background:var(--bg2);overflow:hidden}
+.tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--line);font-size:12.5px;overflow:hidden}
+.tabs span{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;color:var(--mut);white-space:nowrap}
+.tabs span.on{background:var(--card);color:var(--fg);box-shadow:var(--shadow)}
+.tabs .pi{width:16px;height:16px;border-radius:5px}
+.tabs .pi b{font-size:9px}
+.comp .txt{padding:14px 16px;font-size:14px;color:var(--fg2);min-height:92px;position:relative}
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--accent);vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.comp .bar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+.meter{width:90px;height:5px;border-radius:9px;background:var(--line2);overflow:hidden}
+.meter i{display:block;height:100%;width:62%;background:var(--grad);border-radius:inherit;transform-origin:0 50%;animation:meter 5s ease-in-out infinite}
+@keyframes meter{0%{transform:scaleX(.3)}60%,100%{transform:scaleX(1)}}
+
+/* Calendar mock */
+.cal{display:grid;grid-template-columns:48px repeat(7,1fr);gap:6px;font-size:11.5px}
+.cal .h{color:var(--mut);text-align:center;padding-bottom:2px;font-weight:600}
+.cal .h.today{color:var(--accent)}
+.cal .t{color:var(--mut);font-family:var(--mono);font-size:10.5px;padding-top:10px}
+.cal .cell{font-style:normal;height:46px;border-radius:9px;border:1px dashed var(--line2);position:relative}
+.cal .ev{position:absolute;inset:3px;border-radius:7px;display:flex;align-items:center;gap:6px;padding:0 7px;background:var(--card2);border:1px solid var(--line2);font-size:11px;font-weight:600;color:var(--fg2);overflow:hidden;white-space:nowrap;opacity:0;transform:translateY(-14px) scale(.96);animation:slot 9s cubic-bezier(.2,.8,.2,1) infinite;animation-delay:var(--d)}
+.cal .ev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.cal .ev .pi{width:16px;height:16px;border-radius:5px}
+.cal .ev .pi b{font-size:9px}
+@keyframes slot{0%{opacity:0;transform:translateY(-14px) scale(.96)}7%,88%{opacity:1;transform:none}96%,100%{opacity:0;transform:translateY(4px)}}
+.now{position:absolute;left:0;right:0;top:40%;height:2px;background:var(--r);border-radius:2px}
+
+/* Retry log */
+.log{font:12.5px/1.5 var(--mono);border:1px solid var(--line);border-radius:14px;background:var(--bg2);padding:12px 14px}
+.log div{display:flex;gap:10px;align-items:baseline;padding:4px 0;opacity:0;animation:logIn 8s ease-out infinite;animation-delay:var(--d)}
+.log time{color:var(--mut);flex:none}
+.log .k{flex:none;font-weight:600}
+.log .ok{color:var(--ok)}.log .wa{color:var(--warn)}.log .in{color:var(--mut)}
+@keyframes logIn{0%{opacity:0;transform:translateX(-6px)}5%,90%{opacity:1;transform:none}100%{opacity:0}}
+
+/* Media mock */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mgrid i{font-style:normal;aspect-ratio:1;border-radius:10px;background:var(--g);position:relative;overflow:hidden}
+.mgrid i span{position:absolute;right:5px;bottom:5px;font:600 10px/1 var(--mono);color:#fff;background:rgba(0,0,0,.45);padding:3px 5px;border-radius:5px;font-style:normal}
+.mgrid .up{background:var(--card2);border:1px dashed var(--line2);display:grid;place-items:center}
+.mgrid .up::after{content:"";position:absolute;left:10px;right:10px;bottom:12px;height:4px;border-radius:4px;background:var(--grad);transform-origin:0 50%;animation:upl 3.2s ease-in-out infinite}
+@keyframes upl{0%{transform:scaleX(.05)}80%,100%{transform:scaleX(1)}}
+
+/* API / MCP */
+.chat{display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.msg{max-width:88%;padding:10px 14px;border-radius:14px;line-height:1.45}
+.msg.u{align-self:flex-end;background:var(--grad);color:#fff;border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--card2);border:1px solid var(--line);color:var(--fg2);border-bottom-left-radius:4px}
+.tool{display:flex;align-items:center;gap:8px;font:12px/1.4 var(--mono);color:var(--mut);align-self:flex-start;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--bg2)}
+.tool svg{width:14px;height:14px;fill:#d97757}
+.code{margin:0;font:12.5px/1.65 var(--mono);color:var(--fg2);background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;overflow:auto;white-space:pre}
+.code .c1{color:#e8590c}.code .c2{color:var(--mut)}.code .c3{color:#16a34a}
+:root.dark .code .c3{color:#4ade80}
+@media (prefers-color-scheme:dark){:root:not(.light) .code .c3{color:#4ade80}:root:not(.light) .code .c1{color:#fb923c}}
+:root.dark .code .c1{color:#fb923c}
+
+/* Steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:s;position:relative}
+.step{position:relative;padding:28px;border-radius:22px;border:1px solid var(--line);background:var(--card)}
+.step .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;background:var(--grad);margin-bottom:18px;box-shadow:0 6px 18px -6px rgba(225,29,72,.6)}
+.step h3{margin:0 0 8px;font-size:19px;letter-spacing:-.02em}
+.step p{margin:0;color:var(--mut);font-size:15px}
+.flow{height:2px;margin:0 0 -1px;background:linear-gradient(90deg,transparent,var(--line2),transparent);position:relative;overflow:hidden;border-radius:2px;margin-bottom:28px}
+.flow::after{content:"";position:absolute;top:0;bottom:0;width:22%;background:linear-gradient(90deg,transparent,#fb923c,#e11d48,transparent);animation:flow 3.6s ease-in-out infinite}
+@keyframes flow{from{transform:translateX(-100%)}to{transform:translateX(560%)}}
+
+/* Platforms grid */
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.grid li{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:500;color:var(--fg2);line-height:1.25;transition:transform .25s,border-color .25s}
+.grid li:hover{transform:translateY(-2px);border-color:var(--line2)}
+.grid .tag{margin-left:auto;font:700 9.5px/1 var(--sans);font-style:normal;letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:6px;white-space:nowrap;cursor:help}
+.grid .tag.v{color:var(--ok);background:rgba(22,163,74,.12)}
+.grid .tag.e{color:var(--warn);background:rgba(217,119,6,.13)}
+.marquee .tag{display:none}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;text-align:center;gap:6px 18px;margin:18px 0 0;font-size:13px;color:var(--mut)}
+.legend b{font-weight:600;color:var(--fg2)}
+
+/* Data use */
+.trust{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+.trust .card{padding:30px}
+.trust h3{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:14px}
+.trust ul{margin:0;padding:0;list-style:none;display:grid;gap:11px}
+.trust li{position:relative;padding-left:26px;color:var(--fg2);font-size:15px}
+.trust li::before{content:"";position:absolute;left:0;top:5px;width:16px;height:16px;border-radius:50%;background:rgba(22,163,74,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2 7 10.5l4.5-5' fill='none' stroke='%2316a34a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat}
+.trust .side{display:grid;gap:16px}
+.trust .side p{color:var(--fg2);font-size:15px}
+.trust a{color:var(--accent);text-underline-offset:3px}
+.note{margin-top:18px;padding:14px 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);font-size:14px;color:var(--fg2)}
+
+/* Open source */
+.oss{border-radius:28px;border:1px solid var(--line2);background:var(--card);padding:56px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
+.oss::before{content:"";position:absolute;width:640px;height:640px;right:-200px;top:-260px;border-radius:50%;background:radial-gradient(circle,var(--blob1),transparent 62%);animation:drift1 16s ease-in-out infinite alternate}
+.oss > *{position:relative}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{padding:20px;border-radius:18px;background:var(--bg2);border:1px solid var(--line)}
+.stat b{display:block;font-size:40px;line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums}
+.stat > span{display:block;margin-top:8px;color:var(--mut);font-size:14px}
+.stack{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 28px}
+.stack span{font:500 13px/1 var(--sans);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);background:var(--bg2)}
+
+/* Hosted */
+section.hosted{padding-top:0}
+.hcard{position:relative;overflow:hidden;text-align:center;border-radius:28px;padding:56px 32px;border:1px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,rgba(251,146,60,.55),var(--line2) 40%,var(--line2) 60%,rgba(225,29,72,.5)) border-box;box-shadow:var(--shadow)}
+.hcard::before{content:"";position:absolute;width:560px;height:560px;left:50%;top:-360px;margin-left:-280px;border-radius:50%;background:radial-gradient(circle,var(--blob2),transparent 65%);pointer-events:none}
+.hcard > *{position:relative}
+.hcard .sub{margin:0 auto 28px}
+.hcard .ctas{justify-content:center}
+
+/* Pricing (filled from /api/billing/plans; the section stays hidden while billing is off) */
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;max-width:1040px;margin-inline:auto}
+.plan{display:flex;flex-direction:column}
+.plan.hl{border-color:transparent;background:linear-gradient(var(--card),var(--card)) padding-box,var(--grad) border-box;border:1.5px solid transparent}
+.plan .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.plan .top h3{margin:0}
+.plan .desc{margin-top:6px;min-height:3.2em}
+.plan .badge{font:700 10px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:#fff;background:var(--grad);padding:5px 8px;border-radius:999px}
+.plan .price{margin:18px 0 4px;display:flex;align-items:baseline;gap:6px}
+.plan .price b{font-size:40px;line-height:1;letter-spacing:-.03em;font-weight:700;color:var(--fg)}
+.plan .price span{color:var(--mut);font-size:15px}
+.plan .alt{color:var(--mut);font-size:13px;min-height:20px;margin:0}
+.plan ul{list-style:none;margin:20px 0 24px;padding:0;display:grid;align-content:start;gap:9px;flex:1;font-size:15px;color:var(--fg2)}
+.plan li{display:flex;gap:10px;align-items:flex-start}
+.plan li::before{content:"";flex:none;width:16px;height:16px;margin-top:4px;border-radius:50%;background:var(--grad);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.7 5.7-4.5 4.6a1 1 0 0 1-1.4 0L4.3 8.8a1 1 0 1 1 1.4-1.4l.8.8 3.8-3.9a1 1 0 0 1 1.4 1.4Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.7 5.7-4.5 4.6a1 1 0 0 1-1.4 0L4.3 8.8a1 1 0 1 1 1.4-1.4l.8.8 3.8-3.9a1 1 0 0 1 1.4 1.4Z'/%3E%3C/svg%3E") center/contain no-repeat}
+.plan .btn{width:100%}
+
+/* Footer */
+footer{border-top:1px solid var(--line);padding:40px 0 48px;color:var(--mut);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 24px;margin-left:auto}
+footer a{text-decoration:none}footer a:hover{color:var(--fg)}
+footer .brand{color:var(--fg);font-size:15px}
+footer .brand svg{width:24px;height:24px}
+
+/* Reveal (only when JS is on, so the page reads fully without it) */
+.js .rv{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1);transition-delay:var(--rd,0s)}
+.js .rv.in{opacity:1;transform:none}
+.hero .rv{opacity:1!important;transform:none!important;transition:none!important;animation:rise .9s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--rd,0s)}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}}
+.paused *,.paused *::before,.paused *::after{animation-play-state:paused!important}
+
+/* Responsive */
+@media (max-width:1080px){
+  .hero .wrap{grid-template-columns:1fr;text-align:center}
+  .hero .lead{margin-inline:auto}.ctas,.meta{justify-content:center}
+  .stage{--k:.9;margin-top:8px}
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .s3,.s2,.s4{grid-column:span 6}
+  .oss{grid-template-columns:1fr;padding:40px}
+  .trust{grid-template-columns:1fr}
+  .nav nav{display:none}
+}
+@media (max-width:1279px){.nav .gh{display:none}}
+@media (max-width:1379px){.nav .soon.gh{display:none}}
+html[data-launched="false"] .nav .wrap{gap:18px}
+@media (max-width:720px){
+  .hero{padding-top:44px}
+  section{padding:72px 0}
+  .stage{--k:.62}
+  .steps{grid-template-columns:1fr}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid li{font-size:13px;padding:9px 10px;gap:9px}
+  .grid .pi{width:30px;height:30px;border-radius:9px}
+  .grid .tag{font-size:8.5px;padding:3px 4px;letter-spacing:.03em}
+  .grid li{gap:7px}
+  .oss{padding:28px 22px;border-radius:22px}
+  .card{padding:22px}
+  .trust .card{padding:24px}
+  .stat b{font-size:32px}
+  .ctas .btn{flex:1 1 100%}
+  .hero .ctas .btn.ghost{flex:1 1 100%;border:1px solid var(--line2)}
+  .nav .gh,.nav .soon,.nav .su{display:none}
+  .hcard{padding:40px 22px;border-radius:22px}
+  .hcard .soon,.ctas .soon{flex:1 1 100%}
+  .hero .ctas .soon.gh{display:none}
+  .comp .bar .meter,.comp .bar .ov{display:none}
+  .cal{grid-template-columns:36px repeat(7,1fr);gap:4px}
+  .cal .ev span.l{display:none}
+  .cal .ev{justify-content:center;padding:0}
+  .cal .ev::before{display:none}
+  .wrap{width:min(1180px,100% - 32px)}
+  footer nav{margin-left:0}
+}
+@media (max-width:380px){.stage{--k:.58}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .cal .ev,.log div{opacity:1;transform:none}
+  .beam,.spark{display:none}
+  .js .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-instagram" viewBox="0 0 24 24"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></symbol><symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></symbol><symbol id="i-youtube" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></symbol><symbol id="i-facebook" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></symbol><symbol id="i-threads" viewBox="0 0 24 24"><path d="M18.263 11.097c-.03-3.486-1.92-5.586-5.111-5.586-2.13 0-3.922.963-4.863 2.499l2.062 1.438c.535-.843 1.272-1.543 2.628-1.543 1.528 0 2.318.85 2.544 2.431a15 15 0 0 0-2.236-.173c-4.125 0-6.068 1.867-6.068 4.336s1.943 3.99 4.804 3.99c3.139 0 5.013-2.115 5.781-4.735.798.361 1.348 1.204 1.348 2.47 0 3.387-3.907 5.232-7.22 5.232-4.885 0-8.077-3.207-8.077-8.424 0-6.392 4.223-10.487 9.9-10.487 3.808 0 5.69 1.671 6.97 3.914l2.108-1.475C21.44 2.078 18.331 0 13.663 0 6.227 0 1.168 5.277 1.168 12.934c0 7 4.953 11.066 10.856 11.066 4.878 0 9.809-2.846 9.809-7.716 0-2.545-1.46-4.231-3.569-5.187m-6.33 4.855c-1.077 0-2.026-.512-2.026-1.453 0-1.483 1.822-1.934 3.606-1.934.678 0 1.34.045 1.927.173-.422 1.927-1.671 3.215-3.508 3.214Z"/></symbol><symbol id="i-bluesky" viewBox="0 0 24 24"><path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213 24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299-5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782 8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883c0-3.67 3.217-2.517 5.202-1.026"/></symbol><symbol id="i-pinterest" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/></symbol><symbol id="i-reddit" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z"/></symbol><symbol id="i-mastodon" viewBox="0 0 24 24"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></symbol><symbol id="i-telegram" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></symbol><symbol id="i-discord" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></symbol><symbol id="i-google" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></symbol><symbol id="i-tumblr" viewBox="0 0 24 24"><path d="M14.563 24c-5.093 0-7.031-3.756-7.031-6.411V9.747H5.116V6.648c3.63-1.313 4.512-4.596 4.71-6.469C9.84.051 9.941 0 9.999 0h3.517v6.114h4.801v3.633h-4.82v7.47c.016 1.001.375 2.371 2.207 2.371h.09c.631-.02 1.486-.205 1.936-.419l1.156 3.425c-.436.636-2.4 1.374-4.156 1.404h-.178l.011.002z"/></symbol><symbol id="i-twitch" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></symbol><symbol id="i-kick" viewBox="0 0 24 24"><path d="M1.333 0h8v5.333H12V2.667h2.667V0h8v8H20v2.667h-2.667v2.666H20V16h2.667v8h-8v-2.667H12v-2.666H9.333V24h-8Z"/></symbol><symbol id="i-vk" viewBox="0 0 24 24"><path d="m9.489.004.729-.003h3.564l.73.003.914.01.433.007.418.011.403.014.388.016.374.021.36.025.345.03.333.033c1.74.196 2.933.616 3.833 1.516.9.9 1.32 2.092 1.516 3.833l.034.333.029.346.025.36.02.373.025.588.012.41.013.644.009.915.004.98-.001 3.313-.003.73-.01.914-.007.433-.011.418-.014.403-.016.388-.021.374-.025.36-.03.345-.033.333c-.196 1.74-.616 2.933-1.516 3.833-.9.9-2.092 1.32-3.833 1.516l-.333.034-.346.029-.36.025-.373.02-.588.025-.41.012-.644.013-.915.009-.98.004-3.313-.001-.73-.003-.914-.01-.433-.007-.418-.011-.403-.014-.388-.016-.374-.021-.36-.025-.345-.03-.333-.033c-1.74-.196-2.933-.616-3.833-1.516-.9-.9-1.32-2.092-1.516-3.833l-.034-.333-.029-.346-.025-.36-.02-.373-.025-.588-.012-.41-.013-.644-.009-.915-.004-.98.001-3.313.003-.73.01-.914.007-.433.011-.418.014-.403.016-.388.021-.374.025-.36.03-.345.033-.333c.196-1.74.616-2.933 1.516-3.833.9-.9 2.092-1.32 3.833-1.516l.333-.034.346-.029.36-.025.373-.02.588-.025.41-.012.644-.013.915-.009ZM6.79 7.3H4.05c.13 6.24 3.25 9.99 8.72 9.99h.31v-3.57c2.01.2 3.53 1.67 4.14 3.57h2.84c-.78-2.84-2.83-4.41-4.11-5.01 1.28-.74 3.08-2.54 3.51-4.98h-2.58c-.56 1.98-2.22 3.78-3.8 3.95V7.3H10.5v6.92c-1.6-.4-3.62-2.34-3.71-6.92Z"/></symbol><symbol id="i-mewe" viewBox="0 0 24 24"><path d="M3.029 7.712a.768.768 0 100 1.536.768.768 0 000-1.536zm7.883 0a.768.768 0 100 1.536.768.768 0 000-1.536zm4.414 0a.768.768 0 100 1.536.768.768 0 000-1.536zm4.418 0a.768.768 0 100 1.537.768.768 0 000-1.537zm-4.447 2.307c-.27 0-.453.175-.54.428l-1.378 4.175-1.403-4.193a.546.546 0 00-.532-.392c-.296 0-.55.227-.55.523 0 .07.018.148.044.21l1.805 5.056c.105.279.296.444.558.444h.105c.261 0 .461-.165.557-.444l1.36-3.985 1.36 3.985c.096.279.288.444.55.444h.105c.261 0 .462-.174.558-.444l1.804-5.057a.617.617 0 00.052-.218.525.525 0 00-.531-.514c-.262 0-.445.166-.523.383l-1.404 4.202-1.377-4.175c-.079-.253-.27-.428-.541-.428zM.54 10.045a.538.538 0 00-.54.541v5.117c0 .297.227.523.523.523a.52.52 0 00.532-.523V12.05l1.482 2.224c.113.174.253.279.444.279.201 0 .34-.105.454-.28l1.49-2.24v3.661a.54.54 0 00.533.532.53.53 0 00.54-.532v-5.108a.538.538 0 00-.54-.54h-.114a.54.54 0 00-.488.278L3 13.227 1.15 10.333a.565.565 0 00-.497-.288zm8.368 1.439c-1.316 0-2.25 1.081-2.25 2.397v.018c0 1.42 1.03 2.389 2.363 2.389.715 0 1.239-.236 1.657-.61a.46.46 0 00.14-.323.415.415 0 00-.419-.427.391.391 0 00-.27.096 1.655 1.655 0 01-1.09.4c-.68 0-1.212-.418-1.325-1.168h2.885c.27 0 .497-.209.497-.505 0-1.064-.723-2.267-2.188-2.267zm12.904 0c-1.317 0-2.25 1.081-2.25 2.397v.018c0 1.42 1.029 2.389 2.363 2.389.715 0 1.238-.236 1.657-.61a.46.46 0 00.139-.323.415.415 0 00-.418-.427.392.392 0 00-.271.096 1.652 1.652 0 01-1.09.4c-.68 0-1.211-.418-1.325-1.168h2.886c.27 0 .497-.209.497-.505 0-1.064-.724-2.267-2.188-2.267zm-12.913.863c.698 0 1.099.532 1.169 1.212H7.705c.096-.715.549-1.212 1.194-1.212zm12.904 0c.697 0 1.098.532 1.168 1.212h-2.363c.096-.715.55-1.212 1.195-1.212z"/></symbol><symbol id="i-farcaster" viewBox="0 0 24 24"><path d="M18.24.24H5.76C2.5789.24 0 2.8188 0 6v12c0 3.1811 2.5789 5.76 5.76 5.76h12.48c3.1812 0 5.76-2.5789 5.76-5.76V6C24 2.8188 21.4212.24 18.24.24m.8155 17.1662v.504c.2868-.0256.5458.1905.5439.479v.5688h-5.1437v-.5688c-.0019-.2885.2576-.5047.5443-.479v-.504c0-.22.1525-.402.358-.458l-.0095-4.3645c-.1589-1.7366-1.6402-3.0979-3.4435-3.0979-1.8038 0-3.2846 1.3613-3.4435 3.0979l-.0096 4.3578c.2276.0424.5318.2083.5395.4648v.504c.2863-.0256.5457.1905.5438.479v.5688H4.3915v-.5688c-.0019-.2885.2575-.5047.5438-.479v-.504c0-.2529.2011-.4548.4536-.4724v-7.895h-.4905L4.2898 7.008l2.6405-.0005V5.0419h9.9495v1.9656h2.8219l-.6091 2.0314h-.4901v7.8949c.2519.0177.453.2195.453.4724"/></symbol><symbol id="i-lemmy" viewBox="0 0 24 24"><path d="M2.9595 4.2228a3.9132 3.9132 0 0 0-.332.019c-.8781.1012-1.67.5699-2.155 1.3862-.475.8-.5922 1.6809-.35 2.4971.2421.8162.8297 1.5575 1.6982 2.1449.0053.0035.0106.0076.0163.0114.746.4498 1.492.7431 2.2877.8994-.02.3318-.0272.6689-.006 1.0181.0634 1.0432.4368 2.0006.996 2.8492l-2.0061.8189a.4163.4163 0 0 0-.2276.2239.416.416 0 0 0 .0879.455.415.415 0 0 0 .2941.1231.4156.4156 0 0 0 .1595-.0312l2.2093-.9035c.408.4859.8695.9315 1.3723 1.318.0196.0151.0407.0264.0603.0423l-1.2918 1.7103a.416.416 0 0 0 .664.501l1.314-1.7385c.7185.4548 1.4782.7927 2.2294 1.0242.3833.7209 1.1379 1.1871 2.0202 1.1871.8907 0 1.6442-.501 2.0242-1.2072.744-.2347 1.4959-.5729 2.2073-1.0262l1.332 1.7606a.4157.4157 0 0 0 .7439-.1936.4165.4165 0 0 0-.0799-.3074l-1.3099-1.7345c.0083-.0075.0178-.0113.0261-.0188.4968-.3803.9549-.8175 1.3622-1.2939l2.155.8794a.4156.4156 0 0 0 .5412-.2276.4151.4151 0 0 0-.2273-.5432l-1.9438-.7928c.577-.8538.9697-1.8183 1.0504-2.8693.0268-.3507.0242-.6914.0079-1.0262.7905-.1572 1.5321-.4502 2.2737-.8974.0053-.0033.011-.0076.0163-.0113.8684-.5874 1.456-1.3287 1.6982-2.145.2421-.8161.125-1.697-.3501-2.497-.4849-.8163-1.2768-1.2852-2.155-1.3863a3.2175 3.2175 0 0 0-.332-.0189c-.7852-.0151-1.6231.229-2.4286.6942-.5926.342-1.1252.867-1.5433 1.4387-1.1699-.6703-2.6923-1.0476-4.5635-1.0785a15.5768 15.5768 0 0 0-.5111 0c-2.085.034-3.7537.43-5.0142 1.1449-.0033-.0038-.0045-.0114-.008-.0152-.4233-.5916-.973-1.1365-1.5835-1.489-.8055-.465-1.6434-.7083-2.4286-.6941Zm.2858.7365c.5568.042 1.1696.2358 1.7787.5875.485.28.9757.7554 1.346 1.2696a5.6875 5.6875 0 0 0-.4969.4085c-.9201.8516-1.4615 1.9597-1.668 3.2335-.6809-.1402-1.3183-.3945-1.984-.7948-.7553-.5128-1.2159-1.1225-1.4004-1.7445-.1851-.624-.1074-1.2712.2776-1.9196.3743-.63.9275-.9534 1.6118-1.0322a2.796 2.796 0 0 1 .5352-.0076Zm17.5094 0a2.797 2.797 0 0 1 .5353.0075c.6842.0786 1.2374.4021 1.6117 1.0322.385.6484.4627 1.2957.2776 1.9196-.1845.622-.645 1.2317-1.4004 1.7445-.6578.3955-1.2881.6472-1.9598.7888-.1942-1.2968-.7375-2.4338-1.666-3.302a5.5639 5.5639 0 0 0-.4709-.3923c.3645-.49.8287-.9428 1.2938-1.2113.6091-.3515 1.2219-.5454 1.7787-.5875ZM12.006 6.0036a14.832 14.832 0 0 1 .487 0c2.3901.0393 4.0848.67 5.1631 1.678 1.1501 1.0754 1.6423 2.6006 1.499 4.467-.1311 1.7079-1.2203 3.2281-2.652 4.324-.694.5313-1.4626.9354-2.2254 1.2294.0031-.0453.014-.0888.014-.1349.0029-1.1964-.9313-2.2133-2.2918-2.2133-1.3606 0-2.3222 1.0154-2.2918 2.2213.0013.0507.014.0972.0181.1471-.781-.2933-1.5696-.7013-2.2777-1.2456-1.4239-1.0945-2.4997-2.6129-2.6037-4.322-.1129-1.8567.3778-3.3382 1.5212-4.3965C7.5094 6.7 9.352 6.047 12.006 6.0036Zm-3.6419 6.8291c-.6053 0-1.0966.4903-1.0966 1.0966 0 .6063.4913 1.0986 1.0966 1.0986s1.0966-.4923 1.0966-1.0986c0-.6063-.4913-1.0966-1.0966-1.0966zm7.2819.0113c-.5998 0-1.0866.4859-1.0866 1.0866s.4868 1.0885 1.0866 1.0885c.5997 0 1.0865-.4878 1.0865-1.0885s-.4868-1.0866-1.0865-1.0866zM12 16.0835c1.0237 0 1.5654.638 1.5634 1.4829-.0018.7849-.6723 1.485-1.5634 1.485-.9167 0-1.54-.5629-1.5634-1.493-.0212-.8347.5397-1.4749 1.5634-1.4749Z"/></symbol><symbol id="i-dribbble" viewBox="0 0 24 24"><path d="M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm10.12-10.358c-.35-.11-3.17-.953-6.384-.438 1.34 3.684 1.887 6.684 1.992 7.308 2.3-1.555 3.936-4.02 4.395-6.87zm-6.115 7.808c-.153-.9-.75-4.032-2.19-7.77l-.066.02c-5.79 2.015-7.86 6.025-8.04 6.4 1.73 1.358 3.92 2.166 6.29 2.166 1.42 0 2.77-.29 4-.814zm-11.62-2.58c.232-.4 3.045-5.055 8.332-6.765.135-.045.27-.084.405-.12-.26-.585-.54-1.167-.832-1.74C7.17 11.775 2.206 11.71 1.756 11.7l-.004.312c0 2.633.998 5.037 2.634 6.855zm-2.42-8.955c.46.008 4.683.026 9.477-1.248-1.698-3.018-3.53-5.558-3.8-5.928-2.868 1.35-5.01 3.99-5.676 7.17zM9.6 2.052c.282.38 2.145 2.914 3.822 6 3.645-1.365 5.19-3.44 5.373-3.702-1.81-1.61-4.19-2.586-6.795-2.586-.825 0-1.63.1-2.4.285zm10.335 3.483c-.218.29-1.935 2.493-5.724 4.04.24.49.47.985.68 1.486.08.18.15.36.22.53 3.41-.43 6.8.26 7.14.33-.02-2.42-.88-4.64-2.31-6.38z"/></symbol><symbol id="i-medium" viewBox="0 0 24 24"><path d="M4.21 0A4.201 4.201 0 0 0 0 4.21v15.58A4.201 4.201 0 0 0 4.21 24h15.58A4.201 4.201 0 0 0 24 19.79v-1.093c-.137.013-.278.02-.422.02-2.577 0-4.027-2.146-4.09-4.832a7.592 7.592 0 0 1 .022-.708c.093-1.186.475-2.241 1.105-3.022a3.885 3.885 0 0 1 1.395-1.1c.468-.237 1.127-.367 1.664-.367h.023c.101 0 .202.004.303.01V4.211A4.201 4.201 0 0 0 19.79 0Zm.198 5.583h4.165l3.588 8.435 3.59-8.435h3.864v.146l-.019.004c-.705.16-1.063.397-1.063 1.254h-.003l.003 10.274c.06.676.424.885 1.063 1.03l.02.004v.145h-4.923v-.145l.019-.005c.639-.144.994-.353 1.054-1.03V7.267l-4.745 11.15h-.261L6.15 7.569v9.445c0 .857.358 1.094 1.063 1.253l.02.004v.147H4.405v-.147l.019-.004c.705-.16 1.065-.397 1.065-1.253V6.987c0-.857-.358-1.094-1.064-1.254l-.018-.004zm19.25 3.668c-1.086.023-1.733 1.323-1.813 3.124H24V9.298a1.378 1.378 0 0 0-.342-.047Zm-1.862 3.632c-.1 1.756.86 3.239 2.204 3.634v-3.634z"/></symbol><symbol id="i-devdotto" viewBox="0 0 24 24"><path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6l.02 2.44.04 2.45.56-.02c.41 0 .63-.07.83-.26.24-.24.26-.36.26-2.2 0-1.91-.02-1.96-.29-2.18zM0 4.94v14.12h24V4.94H0zM8.56 15.3c-.44.58-1.06.77-2.53.77H4.71V8.53h1.4c1.67 0 2.16.18 2.6.9.27.43.29.6.32 2.57.05 2.23-.02 2.73-.47 3.3zm5.09-5.47h-2.47v1.77h1.52v1.28l-.72.04-.75.03v1.77l1.22.03 1.2.04v1.28h-1.6c-1.53 0-1.6-.01-1.87-.3l-.3-.28v-3.16c0-3.02.01-3.18.25-3.48.23-.31.25-.31 1.88-.31h1.64v1.3zm4.68 5.45c-.17.43-.64.79-1 .79-.18 0-.45-.15-.67-.39-.32-.32-.45-.63-.82-2.08l-.9-3.39-.45-1.67h.76c.4 0 .75.02.75.05 0 .06 1.16 4.54 1.26 4.83.04.15.32-.7.73-2.3l.66-2.52.74-.04c.4-.02.73 0 .73.04 0 .14-1.67 6.38-1.8 6.68z"/></symbol><symbol id="i-hashnode" viewBox="0 0 24 24"><path d="M22.351 8.019l-6.37-6.37a5.63 5.63 0 0 0-7.962 0l-6.37 6.37a5.63 5.63 0 0 0 0 7.962l6.37 6.37a5.63 5.63 0 0 0 7.962 0l6.37-6.37a5.63 5.63 0 0 0 0-7.962zM12 15.953a3.953 3.953 0 1 1 0-7.906 3.953 3.953 0 0 1 0 7.906z"/></symbol><symbol id="i-wordpress" viewBox="0 0 24 24"><path d="M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.11m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.609-3.582.609M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0"/></symbol><symbol id="i-listmonk" viewBox="0 0 24 24"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0m0 5.1953A6.8047 6.8047 0 0 1 18.8047 12 6.8047 6.8047 0 0 1 12 18.8047 6.8047 6.8047 0 0 1 5.1953 12 6.8047 6.8047 0 0 1 12 5.1953"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol><symbol id="i-cloudflare" viewBox="0 0 24 24"><path d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727"/></symbol><symbol id="i-claude" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol><symbol id="i-hook" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/></symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="pfg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#e11d48"/></linearGradient></defs>
+<symbol id="logo" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="256" fill="#FF500A"/><path transform="scale(0.5) translate(0.000000,2048.000000) scale(0.100000,-0.100000)" fill="#FFFBF5" d="M7640 16865 c-218 -50 -373 -212 -409 -426 -15 -92 -15 -1598 0 -1688 42 -248 257 -431 503 -431 233 0 407 127 497 360 11 28 14 201 14 920 l0 885 -24 60 c-96 236 -347 374 -581 320zM12650 16865 c-222 -50 -374 -198 -410 -397 -17 -93 -9 -1755 9 -1793 8 -16 24 -54 38 -83 30 -69 141 -179 217 -216 324 -159 688 30 745 385 18 109 15 1598 -3 1692 -55 283 -329 473 -596 412zM6255 15604 c-63 -5 -175 -25 -235 -41 -30 -8 -68 -18 -85 -23 -134 -35 -348 -146 -493 -257 -274 -209 -494 -541 -570 -863 -55 -230 -52 5 -52 -4280 1 -4075 0 -4036 35 -4180 4 -14 11 -45 17 -70 112 -475 503 -917 963 -1089 33 -13 69 -27 80 -31 11 -5 31 -11 45 -15 14 -3 48 -12 75 -19 162 -43 -34 -41 4205 -41 4226 0 4052 -2 4215 40 338 87 647 290 863 569 75 97 90 120 160 247 81 147 143 349 171 554 8 55 11 642 11 1888 l0 1807 -227 0 c-339 0 -465 -18 -718 -102 -479 -160 -816 -508 -950 -983 -32 -114 -65 -289 -65 -345 0 -61 -74 -131 -137 -129 -87 2 -131 76 -114 194 30 217 5 537 -55 697 -140 374 -440 597 -879 654 -93 12 -577 14 -3130 14 -3011 0 -3020 0 -3053 20 -85 52 -81 189 7 238 l39 22 3034 0 c2632 0 3048 2 3134 15 257 38 437 110 673 268 143 96 330 307 427 484 62 112 72 131 98 198 25 63 34 89 65 190 27 86 61 281 70 405 8 109 22 145 70 177 64 43 158 18 185 -50 9 -20 16 -101 20 -222 10 -275 32 -438 88 -635 5 -19 12 -45 15 -58 3 -12 9 -25 14 -28 5 -3 9 -12 9 -21 0 -27 81 -185 141 -274 142 -212 350 -355 609 -418 106 -25 177 -31 397 -31 l233 0 0 2008 c0 1322 -4 2036 -10 2092 -17 138 -43 258 -77 355 -14 39 -28 79 -31 90 -12 41 -105 211 -162 294 -219 323 -561 560 -940 649 -25 6 -70 17 -100 24 -39 9 -158 13 -415 13 l-360 0 -5 -475 c-6 -540 -5 -531 -87 -694 -14 -27 -36 -68 -50 -90 -34 -55 -199 -216 -248 -242 -22 -11 -56 -30 -76 -42 -91 -51 -230 -82 -371 -82 -339 0 -650 230 -764 565 -40 120 -44 175 -44 628 l0 437 -1680 0 -1680 0 0 -442 c0 -516 -3 -545 -88 -728 -57 -125 -200 -280 -321 -348 -13 -8 -38 -22 -56 -32 -128 -72 -354 -100 -523 -65 -304 64 -553 307 -635 620 -6 23 -13 238 -16 515 l-6 475 -310 1 c-170 0 -328 -1 -350 -2z"/></symbol></svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Postflare home"><svg aria-hidden="true"><use href="#logo"/></svg>Postflare</a>
+    <nav aria-label="Primary"><a href="#features">Features</a><a href="#how">How it works</a><a href="#platforms">Platforms</a><a href="#data">Data use</a><a href="#open-source">Open source</a><a href="#pricing" data-pricing hidden>Pricing</a></nav>
+    <span class="sp"></span>
+    <span class="soon gh" data-launch-href="https://github.com/FerdiKT/postflare" data-launch-class="btn sec sm gh" role="link" aria-disabled="true" title="The GitHub repository goes public at launch"><svg aria-hidden="true"><use href="#i-github"/></svg>GitHub<b data-soon>Soon</b></span>
+    <span class="soon" data-signup="btn sec sm su" role="link" aria-disabled="true" title="Hosted Postflare accounts are coming soon">Sign up<b>Coming soon</b></span>
+    <a class="btn pri sm" href="/demo" data-demo>Live demo</a>
+    <a class="btn sec sm" href="/login">Sign in</a>
+  </div>
+</header>
+
+<main id="main">
+<div class="bg" aria-hidden="true"><i class="blob a"></i><i class="blob b"></i></div>
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div>
+      <a class="pill rv" href="#open-source"><b>Open source</b>Self-hosted on Cloudflare&rsquo;s free plan</a>
+      <h1 id="hero-title" class="rv" style="--rd:.06s">Schedule once.<br><span class="gt">Publish everywhere.</span></h1>
+      <p class="lead rv" style="--rd:.12s"><strong>Postflare</strong> is a social media scheduler you run on your own Cloudflare account. Write a post once, tailor it per network, put it on a calendar, and Postflare publishes it to Instagram, TikTok, YouTube, X, LinkedIn, Threads and 29 more networks through their official APIs, right on time.</p>
+      <div class="ctas rv" style="--rd:.18s">
+        <a class="btn pri" href="/demo" data-demo><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4a.8.8 0 0 0 1.2.7l8.3-5.2a.8.8 0 0 0 0-1.4L5.7 2.1a.8.8 0 0 0-1.2.7Z"/></svg>Live demo</a>
+        <a class="btn sec" href="/signup" data-hero-cta hidden>Sign up</a>
+        <a class="btn x" id="follow-x" href="https://x.com/postflareio" target="_blank" rel="noopener" data-follow data-prelaunch><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Follow for launch updates</a>
+        <span class="soon lg" data-launch-href="https://deploy.workers.cloudflare.com/?url=https://github.com/FerdiKT/postflare" data-launch-class="btn cf" role="link" aria-disabled="true" title="One-click deploy opens at launch"><svg aria-hidden="true"><use href="#i-cloudflare"/></svg>Deploy to Cloudflare<b data-soon>Soon</b></span>
+        <span class="soon lg gh" data-launch-href="https://github.com/FerdiKT/postflare" data-launch-class="btn sec" role="link" aria-disabled="true" title="The GitHub repository goes public at launch"><svg aria-hidden="true"><use href="#i-github"/></svg>GitHub<b data-soon>Soon</b></span>
+        <a class="btn ghost" href="/login">Sign in</a>
+      </div>
+      <div class="meta rv" style="--rd:.24s"><span>36 integrations</span><span>REST API + MCP server</span><span>AGPL-3.0</span><span data-demo>Demo: no sign-up needed</span></div>
+    </div>
+
+    <div class="stage" role="img" aria-label="Illustration: one scheduled post flaring out to Instagram, TikTok, YouTube, X, LinkedIn, Threads, Bluesky, Facebook, Pinterest, Reddit, Mastodon, Telegram, Discord and Google Business Profile.">
+      <div class="orbit" id="orbit">
+        <i class="circle c2"></i><i class="circle c1"></i><i class="halo"></i>
+        <div class="ring r1" style="--r:182px"><div class="slot" style="--a:0.0deg;--d:0.00s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#E4405F;--f:#fff" title="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-instagram"/></svg></span></span></div><div class="slot" style="--a:60.0deg;--d:0.53s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#000000;--f:#fff" title="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tiktok"/></svg></span></span></div><div class="slot" style="--a:120.0deg;--d:1.06s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#FF0000;--f:#fff" title="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-youtube"/></svg></span></span></div><div class="slot" style="--a:180.0deg;--d:1.59s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#000000;--f:#fff" title="X"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></span></span></div><div class="slot" style="--a:240.0deg;--d:2.12s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#0A66C2;--f:#fff" title="LinkedIn"><b aria-hidden="true">in</b></span></span></div><div class="slot" style="--a:300.0deg;--d:2.65s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#000000;--f:#fff" title="Threads"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-threads"/></svg></span></span></div></div><div class="ring r2" style="--r:258px"><div class="slot" style="--a:22.0deg;--d:0.00s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#1185FE;--f:#fff" title="Bluesky"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bluesky"/></svg></span></span></div><div class="slot" style="--a:67.0deg;--d:0.53s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#0866FF;--f:#fff" title="Facebook Page"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-facebook"/></svg></span></span></div><div class="slot" style="--a:112.0deg;--d:1.06s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#BD081C;--f:#fff" title="Pinterest"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pinterest"/></svg></span></span></div><div class="slot" style="--a:157.0deg;--d:1.59s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#FF4500;--f:#fff" title="Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-reddit"/></svg></span></span></div><div class="slot" style="--a:202.0deg;--d:2.12s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#6364FF;--f:#fff" title="Mastodon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mastodon"/></svg></span></span></div><div class="slot" style="--a:247.0deg;--d:2.65s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#26A5E4;--f:#fff" title="Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-telegram"/></svg></span></span></div><div class="slot" style="--a:292.0deg;--d:3.18s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#5865F2;--f:#fff" title="Discord"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-discord"/></svg></span></span></div><div class="slot" style="--a:337.0deg;--d:3.71s"><i class="beam"></i><i class="spark"></i><span class="orb"><span class="pi lg" style="--c:#4285F4;--f:#fff" title="Google Business Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-google"/></svg></span></span></div></div>
+        <div class="post" aria-hidden="true">
+          <div class="hd"><span class="av" style="background:var(--grad)"></span><span class="nm">Your App<small>@yourapp</small></span></div>
+          <p>Version 2.0 is live: offline mode, widgets and a new editor.</p>
+          <div class="media"><span class="play"></span></div>
+          <div class="ft"><span class="chip"><i class="dot"></i>Scheduled</span><span>Tue 9:00 AM</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="strip" aria-hidden="true">
+  <div class="wrap">Publishes natively to the networks your audience already uses</div>
+  <div class="marquee"><ul id="marq"></ul></div>
+</div>
+
+<section id="features" aria-labelledby="f-title">
+  <div class="wrap">
+    <div class="head rv"><span class="eyebrow">What Postflare does</span><h2 id="f-title">Everything you need to run a content calendar.<br>Nothing you don't.</h2><p class="sub">Postflare replaces a stack of paid scheduling tools with one small app that lives in your Cloudflare account and talks to every network through its official API.</p></div>
+    <div class="bento">
+      <article class="card s3 rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <h3>Compose once, customize per platform</h3>
+        <p>Write a single post and fine-tune the caption, media, title and settings for each network. Character limits and media rules are checked as you type.</p>
+        <div class="vis comp" aria-hidden="true">
+          <div class="tabs"><span class="on">All networks</span><span><i class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></i>X</span><span><i class="pi" style="--c:#0A66C2;--f:#fff"><b>in</b></i>LinkedIn</span><span><i class="pi" style="--c:#FF0000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-youtube"/></svg></i>YouTube</span><span><i class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-tiktok"/></svg></i>TikTok</span></div>
+          <div class="txt">Version 2.0 is live. Offline mode, home screen widgets and a brand new editor, all in one update<span class="caret"></span></div>
+          <div class="bar"><span>Shared caption<span class="ov"> &middot; 3 overrides</span></span><span style="display:flex;align-items:center;gap:8px">172 / 280 <span class="meter"><i></i></span></span></div>
+        </div>
+      </article>
+      <article class="card s3 rv" style="--rd:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <h3>Calendar scheduling</h3>
+        <p>See every scheduled, published and failed post on a calendar. Pick a time, and Postflare takes it from there in your time zone.</p>
+        <div class="vis cal" aria-hidden="true">
+          <span></span><span class="h">Mon</span><span class="h today">Tue</span><span class="h">Wed</span><span class="h">Thu</span><span class="h">Fri</span><span class="h">Sat</span><span class="h">Sun</span>
+          <span class="t">09:00</span><i class="cell"></i><i class="cell"><span class="ev" style="--c:#E4405F;--d:.2s"><i class="pi" style="--c:#E4405F;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-instagram"/></svg></i><span class="l">Reel</span></span></i><i class="cell"></i><i class="cell"><span class="ev" style="--c:#FF0000;--d:1.1s"><i class="pi" style="--c:#FF0000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-youtube"/></svg></i><span class="l">Clip</span></span></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+          <span class="t">13:00</span><i class="cell"><span class="ev" style="--c:#0A66C2;--d:.65s"><i class="pi" style="--c:#0A66C2;--f:#fff"><b>in</b></i><span class="l">Post</span></span></i><i class="cell"></i><i class="cell"><span class="ev" style="--c:#71717a;--d:1.55s"><i class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></i><span class="l">Post</span></span></i><i class="cell"></i><i class="cell"></i><i class="cell"><span class="ev" style="--c:#1185FE;--d:2s"><i class="pi" style="--c:#1185FE;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-bluesky"/></svg></i><span class="l">Post</span></span></i><i class="cell"></i>
+          <span class="t">18:00</span><i class="cell"></i><i class="cell"><span class="ev" style="--c:#71717a;--d:2.45s"><i class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-tiktok"/></svg></i><span class="l">Clip</span></span></i><i class="cell"></i><i class="cell"></i><i class="cell"><span class="ev" style="--c:#BD081C;--d:2.9s"><i class="pi" style="--c:#BD081C;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-pinterest"/></svg></i><span class="l">Pin</span></span></i><i class="cell"></i><i class="cell"><span class="ev" style="--c:#71717a;--d:3.35s"><i class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-threads"/></svg></i><span class="l">Post</span></span></i>
+        </div>
+      </article>
+      <article class="card s2 rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div>
+        <h3>Media library</h3>
+        <p>Upload images and videos once to your own R2 bucket and reuse them across posts and networks.</p>
+        <div class="vis mgrid" aria-hidden="true">
+          <i style="--g:linear-gradient(135deg,#fb923c,#e11d48)"><span>0:30</span></i><i style="--g:linear-gradient(135deg,#6366f1,#22d3ee)"></i><i style="--g:linear-gradient(135deg,#10b981,#a3e635)"><span>1:12</span></i><i style="--g:linear-gradient(135deg,#f472b6,#a855f7)"></i>
+          <i style="--g:linear-gradient(135deg,#0ea5e9,#1e3a8a)"></i><i style="--g:linear-gradient(135deg,#facc15,#f97316)"><span>0:15</span></i><i style="--g:linear-gradient(135deg,#334155,#0f172a)"></i><i class="up"></i>
+        </div>
+      </article>
+      <article class="card s4 rv" style="--rd:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
+        <h3>Reliable publishing with retries</h3>
+        <p>Each post runs as a durable Cloudflare Workflow. Rate limits and flaky uploads are retried with backoff, every step is logged, and you see exactly what happened.</p>
+        <div class="vis log" aria-hidden="true">
+          <div style="--d:0s"><time>09:00:00</time><span class="k in">QUEUED</span><span>YouTube &middot; "Version 2.0 tour" (00:30, 1080p)</span></div>
+          <div style="--d:.6s"><time>09:00:02</time><span class="k in">UPLOAD</span><span>Resumable upload 48.2 MB &rarr; 100%</span></div>
+          <div style="--d:1.2s"><time>09:00:19</time><span class="k wa">RETRY</span><span>429 rate limited, retrying in 30s (attempt 2 of 5)</span></div>
+          <div style="--d:1.8s"><time>09:00:51</time><span class="k ok">PUBLISHED</span><span>youtu.be/&hellip; &middot; first comment posted</span></div>
+        </div>
+      </article>
+      <article class="card s3 rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16"/></svg></div>
+        <h3>REST API for your own tools</h3>
+        <p>Everything in the app is available over a documented REST API with personal API keys, so your scripts and CI can schedule posts too.</p>
+<pre class="vis code" aria-label="Example API request"><span class="c2"># schedule a post for two accounts</span>
+curl https://<span class="c1">your-domain</span>/api/posts \
+  -H <span class="c3">"Authorization: Bearer pf_&hellip;"</span> \
+  -d <span class="c3">'{ "posts": [ &hellip; ], "scheduledAt": "2026-10-14T09:00Z" }'</span></pre>
+      </article>
+      <article class="card s3 rv" style="--rd:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="M12 8.5 13.2 11 15.5 12l-2.3 1L12 15.5 10.8 13 8.5 12l2.3-1Z"/></svg></div>
+        <h3>MCP server for AI assistants</h3>
+        <p>Connect Claude or any MCP client and manage your calendar in plain language: upload media, draft, schedule and retry posts.</p>
+        <div class="vis chat" aria-hidden="true">
+          <div class="msg u">Post this clip to TikTok and YouTube Shorts tomorrow at 9am, with a shorter caption for TikTok.</div>
+          <div class="tool"><svg viewBox="0 0 24 24"><use href="#i-claude"/></svg>create_post &middot; 2 accounts &middot; Tue 09:00</div>
+          <div class="msg a">Done. Both posts are scheduled for Tuesday 9:00 AM. I trimmed the TikTok caption to 92 characters.</div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="h-title">
+  <div class="wrap">
+    <div class="head c rv"><span class="eyebrow">How it works</span><h2 id="h-title">From idea to published in three steps</h2><p class="sub">No browser extensions, no scraping, no shared passwords. Postflare uses each platform's official sign-in and publishing APIs; the one unofficial integration (Skool) is experimental and off by default.</p></div>
+    <div class="flow rv" aria-hidden="true"></div>
+    <ol class="steps" style="list-style:none;margin:0;padding:0">
+      <li class="step rv"><div class="n" aria-hidden="true">1</div><h3>Connect your accounts</h3><p>Sign in to each network with its official OAuth screen (Google, TikTok, Meta, X, LinkedIn and others). You choose which accounts Postflare may post to, and you can revoke access at any time.</p></li>
+      <li class="step rv" style="--rd:.08s"><div class="n" aria-hidden="true">2</div><h3>Compose and schedule</h3><p>Write once, attach media from your library, adjust the post for each network and pick a time on the calendar. Or ask your AI assistant to do it over MCP.</p></li>
+      <li class="step rv" style="--rd:.16s"><div class="n" aria-hidden="true">3</div><h3>Postflare publishes on time</h3><p>At the scheduled moment a Cloudflare Workflow publishes the post through the platform's official API, retries temporary failures and records the result and the live link.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="platforms" aria-labelledby="p-title">
+  <div class="wrap">
+    <div class="head c rv"><span class="eyebrow">Supported platforms</span><h2 id="p-title"><span data-count="36">36</span> networks, one composer</h2><p class="sub">36 integrations &mdash; 3 verified, the rest in beta. Social networks, video platforms, communities, chat apps and blogs, each through the platform's official API (Skool, the exception, is experimental and off by default).</p></div>
+    <ul class="grid rv" aria-label="Supported platforms">
+<li><span class="pi" style="--c:#E4405F;--f:#fff" title="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-instagram"/></svg></span><span>Instagram</span></li>
+<li><span class="pi" style="--c:#C13584;--f:#fff" title="Instagram Business"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-instagram"/></svg></span><span>Instagram Business</span></li>
+<li><span class="pi" style="--c:#000000;--f:#fff" title="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tiktok"/></svg></span><span>TikTok</span><em class="tag v" title="Publishing verified with a live account">Verified</em></li>
+<li><span class="pi" style="--c:#000000;--f:#fff" title="TikTok Business"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tiktok"/></svg></span><span>TikTok Business</span></li>
+<li><span class="pi" style="--c:#FF0000;--f:#fff" title="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-youtube"/></svg></span><span>YouTube</span></li>
+<li><span class="pi" style="--c:#000000;--f:#fff" title="X"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></span><span>X</span><em class="tag v" title="Publishing verified with a live account">Verified</em></li>
+<li><span class="pi" style="--c:#0A66C2;--f:#fff" title="LinkedIn"><b aria-hidden="true">in</b></span><span>LinkedIn</span></li>
+<li><span class="pi" style="--c:#0A66C2;--f:#fff" title="LinkedIn Page"><b aria-hidden="true">in</b></span><span>LinkedIn Page</span></li>
+<li><span class="pi" style="--c:#0866FF;--f:#fff" title="Facebook Page"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-facebook"/></svg></span><span>Facebook Page</span></li>
+<li><span class="pi" style="--c:#000000;--f:#fff" title="Threads"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-threads"/></svg></span><span>Threads</span></li>
+<li><span class="pi" style="--c:#1185FE;--f:#fff" title="Bluesky"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bluesky"/></svg></span><span>Bluesky</span></li>
+<li><span class="pi" style="--c:#BD081C;--f:#fff" title="Pinterest"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pinterest"/></svg></span><span>Pinterest</span></li>
+<li><span class="pi" style="--c:#FF4500;--f:#fff" title="Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-reddit"/></svg></span><span>Reddit</span></li>
+<li><span class="pi" style="--c:#6364FF;--f:#fff" title="Mastodon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mastodon"/></svg></span><span>Mastodon</span></li>
+<li><span class="pi" style="--c:#26A5E4;--f:#fff" title="Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-telegram"/></svg></span><span>Telegram</span></li>
+<li><span class="pi" style="--c:#5865F2;--f:#fff" title="Discord"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-discord"/></svg></span><span>Discord</span></li>
+<li><span class="pi" style="--c:#4A154B;--f:#fff" title="Slack"><b aria-hidden="true">S</b></span><span>Slack</span></li>
+<li><span class="pi" style="--c:#4285F4;--f:#fff" title="Google Business Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-google"/></svg></span><span>Google Business Profile</span></li>
+<li><span class="pi" style="--c:#36465D;--f:#fff" title="Tumblr"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tumblr"/></svg></span><span>Tumblr</span></li>
+<li><span class="pi" style="--c:#9146FF;--f:#fff" title="Twitch"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-twitch"/></svg></span><span>Twitch</span></li>
+<li><span class="pi" style="--c:#53FC18;--f:#000" title="Kick"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-kick"/></svg></span><span>Kick</span></li>
+<li><span class="pi" style="--c:#0077FF;--f:#fff" title="VK"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-vk"/></svg></span><span>VK</span></li>
+<li><span class="pi" style="--c:#17377F;--f:#fff" title="MeWe"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mewe"/></svg></span><span>MeWe</span></li>
+<li><span class="pi" style="--c:#855DCD;--f:#fff" title="Farcaster"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-farcaster"/></svg></span><span>Farcaster</span></li>
+<li><span class="pi" style="--c:#8E30EB;--f:#fff" title="Nostr"><b aria-hidden="true">N</b></span><span>Nostr</span></li>
+<li><span class="pi" style="--c:#00BC8C;--f:#fff" title="Lemmy"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lemmy"/></svg></span><span>Lemmy</span></li>
+<li><span class="pi" style="--c:#EA4C89;--f:#fff" title="Dribbble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-dribbble"/></svg></span><span>Dribbble</span></li>
+<li><span class="pi" style="--c:#000000;--f:#fff" title="Medium"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-medium"/></svg></span><span>Medium</span></li>
+<li><span class="pi" style="--c:#0A0A0A;--f:#fff" title="DEV"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-devdotto"/></svg></span><span>DEV</span></li>
+<li><span class="pi" style="--c:#2962FF;--f:#fff" title="Hashnode"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-hashnode"/></svg></span><span>Hashnode</span></li>
+<li><span class="pi" style="--c:#21759B;--f:#fff" title="WordPress"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wordpress"/></svg></span><span>WordPress</span></li>
+<li><span class="pi" style="--c:#0055D4;--f:#fff" title="Listmonk"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-listmonk"/></svg></span><span>Listmonk</span></li>
+<li><span class="pi" style="--c:#F8D24B;--f:#1c1917" title="Skool"><b aria-hidden="true">S</b></span><span>Skool</span><em class="tag e" title="Unofficial, cookie-based API: may break. Off unless an admin enables experimental integrations">Exp.</em></li>
+<li><span class="pi" style="--c:#FF6243;--f:#fff" title="Whop"><b aria-hidden="true">W</b></span><span>Whop</span></li>
+<li><span class="pi" style="--c:#E01B24;--f:#fff" title="Moltbook"><b aria-hidden="true">M</b></span><span>Moltbook</span></li>
+<li><span class="pi" style="--c:#52525B;--f:#fff" title="Webhook"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-hook"/></svg></span><span>Webhook</span><em class="tag v" title="Publishing verified with a live account">Verified</em></li>
+    </ul>
+    <p class="legend rv"><span><b>Verified</b>: confirmed with a live account</span><span><b>Beta</b> (unmarked): built on the official API, tested with mocked responses</span><span><b>Exp.</b>: unofficial API, off by default</span></p>
+  </div>
+</section>
+
+<section id="data" aria-labelledby="d-title">
+  <div class="wrap">
+    <div class="head rv"><span class="eyebrow">Privacy and data use</span><h2 id="d-title">Your accounts, your data, your infrastructure</h2><p class="sub">Postflare is self-hosted. Each deployment runs in its owner's own Cloudflare account; there is no central Postflare server that receives your tokens or content.</p></div>
+    <div class="trust">
+      <article class="card rv" id="google">
+        <h3><span class="pi" style="--c:#FF0000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-youtube"/></svg></span>Google and YouTube data use</h3>
+        <ul>
+          <li>Postflare uses the <strong>YouTube Data API</strong> only to upload videos that the signed-in user chooses to their own YouTube channel, and to set each video's title, description, privacy status, playlists and thumbnail, and to post a first comment on it.</li>
+          <li>OAuth tokens are encrypted and stored only in the owner's own Cloudflare account (D1 database). They are used for nothing other than publishing the user's scheduled posts.</li>
+          <li>No Google user data is sold, shared with third parties, used for advertising, or used to train AI models.</li>
+          <li>You can disconnect your channel in Postflare at any time, which deletes the stored tokens, and revoke access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+        </ul>
+        <p class="note">Postflare's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+      </article>
+      <div class="side">
+        <article class="card rv" style="--rd:.08s">
+          <h3><span class="pi" style="--c:#000;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-tiktok"/></svg></span>TikTok</h3>
+          <p>Postflare uses TikTok's Login Kit and Content Posting API only to show your basic profile and to publish the videos and photos you schedule to your own TikTok account, with the privacy and interaction settings you choose. Access can be revoked in TikTok under Settings and privacy &rarr; Security &rarr; Manage app permissions.</p>
+        </article>
+        <article class="card rv" style="--rd:.16s">
+          <h3><span class="pi" style="--c:#0866FF;--f:#fff"><svg viewBox="0 0 24 24"><use href="#i-facebook"/></svg></span>Meta: Facebook, Instagram, Threads</h3>
+          <p>Postflare uses Meta's official Graph APIs only to publish posts, reels and stories to the Pages and professional accounts you connect. Remove access any time in Facebook Settings &rarr; Business integrations, or Instagram Settings &rarr; Apps and websites.</p>
+        </article>
+      </div>
+    </div>
+    <p class="sub rv" style="margin-top:24px;font-size:15px">Read the full <a href="/privacy/" style="color:var(--accent)">Privacy Policy</a> and <a href="/terms/" style="color:var(--accent)">Terms of Service</a>. This site is a self-hosted Postflare instance run by its operator; to use Postflare yourself, deploy your own copy<span data-demo> or explore the <a href="/demo" style="color:var(--accent)">live demo</a>, a sandboxed workspace with sample data that never publishes anything</span>.</p>
+  </div>
+</section>
+
+<section id="open-source" aria-labelledby="o-title">
+  <div class="wrap">
+    <div class="oss rv">
+      <div>
+        <span class="eyebrow">Self-hosted and open source</span>
+        <h2 id="o-title">Runs on your Cloudflare account. Free.</h2>
+        <p class="sub">Postflare is AGPL-3.0 licensed and fits comfortably in the Cloudflare Workers Free plan. One click deploys the Worker, database, storage bucket and workflow to your account; your tokens and media never leave it.</p>
+        <p class="sub" style="margin-top:12px;font-size:15px">Inspired by <a href="https://github.com/gitroomhq/postiz-app" style="color:var(--accent)">Postiz</a>, the open-source social media scheduler, and rebuilt to be Cloudflare-native: no servers, no database to run. Postflare is an independent project, not affiliated with Postiz.</p>
+        <div class="stack" aria-label="Built on"><span>Workers</span><span>D1</span><span>R2</span><span>Workflows</span><span>Hono</span><span>React</span></div>
+        <p class="launch-note" data-prelaunch><span>Open source on GitHub &mdash; coming soon. Follow for the launch.</span></p>
+        <div class="ctas"><a class="btn x" href="#follow-x" data-follow data-prelaunch><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Follow for launch updates</a></div>
+        <div class="ctas soon-row"><span class="soon" data-launch-href="https://deploy.workers.cloudflare.com/?url=https://github.com/FerdiKT/postflare" data-launch-class="btn cf" role="link" aria-disabled="true" title="One-click deploy opens at launch"><svg aria-hidden="true"><use href="#i-cloudflare"/></svg>Deploy to Cloudflare<b data-soon>Coming soon</b></span><span class="soon" data-launch-href="https://github.com/FerdiKT/postflare" data-launch-class="btn sec" role="link" aria-disabled="true" title="The GitHub repository goes public at launch"><svg aria-hidden="true"><use href="#i-github"/></svg>View on GitHub<b data-soon>Coming soon</b></span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b data-count="36">36</b><span>integrations, 3 verified and the rest in beta</span></div>
+        <div class="stat"><b>$<span data-count="0">0</span></b><span>per month on the Workers Free plan</span></div>
+        <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of your data stays in your account</span></div>
+        <div class="stat"><b data-count="1">1</b><span>click to deploy your own instance</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="pricing" aria-labelledby="pr-title" hidden>
+  <div class="wrap">
+    <div class="head c"><span class="eyebrow">Pricing</span><h2 id="pr-title">Hosted Postflare plans</h2><p class="sub" id="pr-sub">Start free, upgrade when you need more. Cancel any time.</p></div>
+    <div class="plans" id="plans"></div>
+  </div>
+</section>
+
+<section id="hosted" class="hosted" aria-labelledby="hs-title">
+  <div class="wrap">
+    <div class="hcard rv">
+      <span class="eyebrow">Hosted Postflare</span>
+      <h2 id="hs-title">Don&rsquo;t want to self-host?</h2>
+      <p class="sub"><span data-signup-copy="Use hosted Postflare: the same app, no Cloudflare account to set up. Create an account and schedule your first post in minutes." data-apply-copy="Hosted Postflare is open by application: the same app, no Cloudflare account to set up. Tell us how you&rsquo;d use it and we review every request by hand.">A hosted version of Postflare is coming soon: the same app, no Cloudflare account to set up.</span><span data-demo> Try the live demo meanwhile. It is a sandboxed workspace with sample posts: schedule, edit and &ldquo;publish&rdquo; as much as you like, nothing reaches a real account.</span></p>
+      <div class="ctas">
+        <a class="btn pri" href="/demo" data-demo><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4a.8.8 0 0 0 1.2.7l8.3-5.2a.8.8 0 0 0 0-1.4L5.7 2.1a.8.8 0 0 0-1.2.7Z"/></svg>Try the live demo</a>
+        <span class="soon lg" data-signup="btn sec" role="link" aria-disabled="true" title="Hosted Postflare accounts are coming soon">Sign up<b>Coming soon</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="/"><svg aria-hidden="true"><use href="#logo"/></svg>Postflare</a>
+    <span>&copy; 2026 Postflare</span>
+    <nav aria-label="Footer"><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms of Service</a><a href="/data-deletion/">Data Deletion</a><span class="fsoon" data-launch-href="https://github.com/FerdiKT/postflare" role="link" aria-disabled="true" title="The GitHub repository goes public at launch">GitHub<small data-soon> (coming soon)</small></span><a href="#follow-x" data-follow>Follow on X</a><a href="/demo" data-demo>Live demo</a><a href="/login">Sign in</a></nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // "Follow for launch updates": the X profile URL lives only on #follow-x; other [data-follow] links copy it.
+  var follow = document.getElementById("follow-x");
+  if (follow) document.querySelectorAll("[data-follow]").forEach(function (a) { a.href = follow.href; a.target = "_blank"; a.rel = "noopener"; });
+
+  // Launch flag (<html data-launched>): turn the "Coming soon" pills back into the real GitHub / Deploy links.
+  if (document.documentElement.getAttribute("data-launched") === "true") {
+    document.querySelectorAll("[data-prelaunch]").forEach(function (el) { el.hidden = true; el.style.display = "none"; });
+    document.querySelectorAll("[data-launch-href]").forEach(function (el) {
+      var a = document.createElement("a");
+      a.href = el.getAttribute("data-launch-href");
+      var cls = el.getAttribute("data-launch-class");
+      if (cls) a.className = cls;
+      el.querySelectorAll("[data-soon]").forEach(function (b) { b.remove(); });
+      while (el.firstChild) a.appendChild(el.firstChild);
+      el.replaceWith(a);
+    });
+  }
+
+  // "Live demo" links only work on instances with DEMO_MODE on: hide them elsewhere (they stay without JS).
+  // Hosted mode: with public sign-up on (signupMode open) the "Sign up — coming soon" pills become real links to /signup,
+  // with "Request access" on (signupMode apply) they become "Request access" links to /apply; the hero gets the same
+  // button. The pricing section is filled from /api/billing/plans when plans are for sale (it stays hidden otherwise).
+  // Nothing moves when the API cannot be reached: the pills stay, the hero button stays hidden.
+  var json = function (r) { return r.ok ? r.json() : null; };
+  var none = function () { return null; };
+  Promise.all([
+    fetch("/api/auth/status", { credentials: "same-origin" }).then(json, none),
+    fetch("/api/billing/plans", { credentials: "same-origin" }).then(json, none),
+  ]).then(function (res) {
+    var s = res[0], billing = res[1];
+    if (s && !s.demo) document.querySelectorAll("[data-demo]").forEach(function (el) { el.hidden = true; el.style.display = "none"; });
+    var mode = s ? s.signupMode || (s.signup ? "open" : null) : null;
+    var cta = mode === "open" ? { href: "/signup", label: "Sign up" } : mode === "apply" ? { href: "/apply", label: "Request access" } : null;
+    if (cta) {
+      document.querySelectorAll("[data-signup]").forEach(function (el) {
+        var a = document.createElement("a");
+        a.href = cta.href;
+        a.className = el.getAttribute("data-signup");
+        // The hosted card's only button on instances without the demo: make it the primary one.
+        if (!(s && s.demo) && a.className === "btn sec") a.className = "btn pri";
+        a.textContent = cta.label;
+        el.replaceWith(a);
+      });
+      var copy = mode === "apply" ? "data-apply-copy" : "data-signup-copy";
+      document.querySelectorAll("[" + copy + "]").forEach(function (el) { el.textContent = el.getAttribute(copy); });
+      document.querySelectorAll("[data-hero-cta]").forEach(function (a) {
+        a.href = cta.href;
+        a.textContent = cta.label;
+        if (!(s && s.demo)) a.className = "btn pri";
+        a.hidden = false;
+      });
+    }
+    if (billing && billing.enabled && billing.plans && billing.plans.length) renderPlans(billing.plans, cta);
+  }).catch(function () {});
+
+  function price(cents, currency) {
+    try {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD", maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
+    } catch (e) {
+      return (cents / 100).toFixed(2) + " " + currency;
+    }
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  }
+  function renderPlans(plans, cta) {
+    var box = document.getElementById("plans");
+    plans.forEach(function (p) {
+      var card = el("div", "card plan" + (p.highlight ? " hl" : ""));
+      var top = el("div", "top");
+      top.appendChild(el("h3", "", p.name));
+      if (p.highlight) top.appendChild(el("span", "badge", "Most popular"));
+      card.appendChild(top);
+      card.appendChild(el("p", "desc", p.description || ""));
+      var monthly = p.priceMonth, yearly = p.priceYear, pr = el("p", "price"), alt = el("p", "alt");
+      if (p.isFree || (monthly === null && yearly === null) || (monthly === 0 && !yearly)) {
+        pr.appendChild(el("b", "", "Free"));
+      } else if (monthly !== null) {
+        pr.appendChild(el("b", "", price(monthly, p.currency)));
+        pr.appendChild(el("span", "", "/month"));
+        if (yearly !== null) alt.textContent = "or " + price(yearly, p.currency) + "/year";
+      } else {
+        pr.appendChild(el("b", "", price(yearly, p.currency)));
+        pr.appendChild(el("span", "", "/year"));
+      }
+      card.appendChild(pr);
+      card.appendChild(alt);
+      var ul = el("ul");
+      (p.features || []).forEach(function (f) { ul.appendChild(el("li", "", f)); });
+      card.appendChild(ul);
+      if (cta) {
+        var a = el("a", "btn " + (p.highlight ? "pri" : "sec"), cta.href === "/apply" ? "Request access" : p.isFree ? "Get started" : p.isTrialDefault ? "Start free trial" : "Choose " + p.name);
+        a.href = cta.href;
+        card.appendChild(a);
+      }
+      box.appendChild(card);
+    });
+    if (plans.some(function (p) { return p.isTrialDefault; })) document.getElementById("pr-sub").textContent = "Every new workspace starts with a free trial, no card needed. Cancel any time.";
+    document.getElementById("pricing").hidden = false;
+    document.querySelectorAll("[data-pricing]").forEach(function (a) { a.hidden = false; });
+  }
+
+  // Marquee: duplicate the platform list so the loop is seamless.
+  var marq = document.getElementById("marq");
+  var items = Array.prototype.map.call(document.querySelectorAll(".grid li"), function (li) { return li.innerHTML; });
+  var html = items.map(function (h) { return "<li>" + h + "</li>"; }).join("");
+  marq.innerHTML = html + html;
+
+  // Scroll reveal.
+  var rv = document.querySelectorAll(".rv");
+  if (!("IntersectionObserver" in window) || reduce) {
+    rv.forEach(function (el) { el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    rv.forEach(function (el) { io.observe(el); });
+  }
+
+  // Count-up numbers (the final value is already in the HTML for no-JS readers).
+  var counters = document.querySelectorAll("[data-count]");
+  function run(el) {
+    var to = +el.getAttribute("data-count"), suf = el.getAttribute("data-suffix") || "", t0 = performance.now(), dur = 1400;
+    if (!to) return;
+    (function tick(t) {
+      var p = Math.min(1, (t - t0) / dur), v = Math.round(to * (1 - Math.pow(1 - p, 3)));
+      el.textContent = v + suf;
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  if (!reduce && "IntersectionObserver" in window) {
+    var co = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { run(e.target); co.unobserve(e.target); } });
+    }, { threshold: 0.6 });
+    counters.forEach(function (el) { co.observe(el); });
+  }
+
+  // Pause the hero animation while it is off-screen.
+  var orbit = document.getElementById("orbit");
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (es) { orbit.classList.toggle("paused", !es[0].isIntersecting); }).observe(orbit);
+  }
+
+  // Cursor-following glow on cards.
+  if (!reduce && matchMedia("(hover: hover)").matches) {
+    document.querySelectorAll(".card").forEach(function (c) {
+      c.addEventListener("pointermove", function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty("--mx", e.clientX - r.left + "px");
+        c.style.setProperty("--my", e.clientY - r.top + "px");
+      });
+    });
+  }
+})();
+</script>
+<script src="/support/widget.js" async></script>
+</body>
+</html>

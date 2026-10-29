@@ -1,0 +1,13 @@
+# Security headers of static assets (the app on every path, the landing page, and the fallback privacy/terms/data
+# deletion pages). Responses of the Worker get theirs from worker/lib/headers.ts: keep both in sync. The Worker renders
+# /privacy/, /terms/ and /data-deletion/ with this "/*" CSP (APP_CSP). The app allows Cloudflare Turnstile (script + iframe).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: script-src 'self' https://challenges.cloudflare.com; default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; frame-src https://challenges.cloudflare.com
+
+# The landing page has small inline scripts (theme, animations).
+/landing/*
+  ! Content-Security-Policy
+  Content-Security-Policy: script-src 'self' 'unsafe-inline'; default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

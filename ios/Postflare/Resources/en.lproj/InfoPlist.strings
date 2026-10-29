@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "Postflare";
+"NSCameraUsageDescription" = "Postflare uses the camera to scan the sign-in QR code shown in the web app.";
+"NSFaceIDUsageDescription" = "Postflare uses Face ID to approve sign-ins on your computer.";
+"NSPhotoLibraryUsageDescription" = "Postflare attaches the photos and videos you pick to your posts.";

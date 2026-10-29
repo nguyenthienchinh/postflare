@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Minor and patch updates arrive as one weekly PR; major versions are upgraded by hand
+    # (they usually need code changes, e.g. @cloudflare/vitest-plugin follows vitest majors: check its vitest peer range).
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    ignore:
+      # release.yml reads release-please-action v4 outputs; review the v5 changes before upgrading.
+      - dependency-name: "googleapis/release-please-action"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "ci"

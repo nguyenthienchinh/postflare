@@ -1,0 +1,138 @@
+name: Postflare
+options:
+  bundleIdPrefix: com.example
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+# Bundle id, team and profiles: Config.xcconfig, overridden by the git-ignored Local.xcconfig (see README).
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+    SWIFT_EMIT_LOC_STRINGS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      APS_ENVIRONMENT: development
+    Release:
+      APS_ENVIRONMENT: production
+targets:
+  Postflare:
+    type: application
+    platform: iOS
+    sources:
+      - path: Postflare
+        excludes:
+          - "**/*.md"
+    entitlements:
+      path: Postflare/Postflare.entitlements
+      properties:
+        aps-environment: $(APS_ENVIRONMENT)
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)$(POSTFLARE_BUNDLE_ID).shared
+    info:
+      path: Postflare/Info.plist
+      properties:
+        CFBundleDisplayName: Postflare
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, tr]
+        CFBundleAllowMixedLocalizations: true
+        CFBundleURLTypes:
+          - CFBundleURLName: $(POSTFLARE_BUNDLE_ID)
+            CFBundleURLSchemes: [postflare]
+        LSApplicationCategoryType: public.app-category.social-networking
+        PostflareBundleID: $(POSTFLARE_BUNDLE_ID)
+        PostflareKeychainGroup: $(DEVELOPMENT_TEAM).$(POSTFLARE_BUNDLE_ID).shared
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Postflare uses the camera to scan the sign-in QR code shown in the web app.
+        NSFaceIDUsageDescription: Postflare uses Face ID to approve sign-ins on your computer.
+        NSPhotoLibraryUsageDescription: Postflare attaches the photos and videos you pick to your posts.
+        UIBackgroundModes: [remote-notification]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(POSTFLARE_BUNDLE_ID)
+        PRODUCT_NAME: Postflare
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+      configs:
+        # App Store signing (profiles created with `asc profiles create`, see README).
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: iPhone Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(POSTFLARE_APP_PROFILE)
+    dependencies:
+      - target: PostflareWidgets
+        embed: true
+  PostflareWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PostflareWidgets
+      # Shared with the app: API client, models, formatting, keychain, cache, widget snapshot.
+      # App and extension share the token and settings through the keychain group above (no App Group needed).
+      - path: Postflare/Core
+      - path: Postflare/Resources
+        excludes:
+          - Assets.xcassets
+          - "*.lproj/InfoPlist.strings"
+    entitlements:
+      path: PostflareWidgets/PostflareWidgets.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)$(POSTFLARE_BUNDLE_ID).shared
+    info:
+      path: PostflareWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Postflare
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, tr]
+        PostflareBundleID: $(POSTFLARE_BUNDLE_ID)
+        PostflareKeychainGroup: $(DEVELOPMENT_TEAM).$(POSTFLARE_BUNDLE_ID).shared
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(POSTFLARE_BUNDLE_ID).widgets
+        PRODUCT_NAME: PostflareWidgets
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: iPhone Distribution
+          PROVISIONING_PROFILE_SPECIFIER: $(POSTFLARE_WIDGETS_PROFILE)
+schemes:
+  Postflare:
+    build:
+      targets:
+        Postflare: all
+        PostflareWidgets: all
+    run:
+      config: Debug
+    archive:
+      config: Release

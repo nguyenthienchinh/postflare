@@ -1,0 +1,65 @@
+// Personal deployment config. Copy to wrangler.local.jsonc (git-ignored) and edit:
+//   cp wrangler.local.example.jsonc wrangler.local.jsonc
+// When wrangler.local.jsonc exists, `npm run dev` / `npm run build` / `npm run deploy` use it instead of
+// wrangler.jsonc (or point WRANGLER_CONFIG at any other file). It is a full config, not a patch: keep it in sync with
+// wrangler.jsonc when that changes. Keep the name, binding names, database_name, bucket_name and workflow name as they
+// are unless you know what you are doing: existing Cloudflare resources are matched by these names.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "postflare",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Serve only on your own domain (the zone must be on your Cloudflare account). Remove these two lines to keep the
+  // *.workers.dev URL and preview URLs as well.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "social.example.com", "custom_domain": true }],
+
+  "vars": {
+    // Public URL used for OAuth redirects, media links and the CLI hints. Locks the Settings field when set.
+    "PUBLIC_URL": "https://social.example.com",
+    // Public custom domain of the R2 media bucket (README "Custom media domain": bucket → Settings → Custom Domains,
+    // plus a Cache Rule). Media URLs then point straight at R2, not at the Worker's /m/ links. No trailing slash.
+    // "MEDIA_PUBLIC_URL": "https://cdn.social.example.com",
+    // "true" hosts the public, sandboxed live demo at /demo. Leave it out unless you really want a public demo.
+    "DEMO_MODE": "false"
+    // Sign-in links by email: the sender ("Name <address>" or a bare address), plus the "send_email" binding below.
+    // Then turn them on in Admin → Instance settings. The same binding confirms public sign-ups by email (hosted mode,
+    // docs/hosted-spec.md). Needs Workers Paid and a domain onboarded to Email Sending
+    // (npx wrangler email sending enable example.com); on the Free plan it only reaches your verified addresses.
+    // "EMAIL_FROM": "Postflare <login@example.com>",
+    // Bot protection (Cloudflare Turnstile) on sign-up, sign-in links and sign-in after 3 failures: the widget's site
+    // key (Cloudflare dashboard → Turnstile, add your hostname), plus its secret key as a secret:
+    //   npx wrangler secret put TURNSTILE_SECRET_KEY
+    // Both win over the keys you can also paste in Admin → Instance settings → Bot protection.
+    // "TURNSTILE_SITE_KEY": "0x4AAAAAAA...",
+    // iOS app push notifications (APNs, README "iOS app"): the .p8 key's Key ID, your Team ID and the app's bundle id,
+    // plus the key itself as a secret: npx wrangler secret put APNS_PRIVATE_KEY < AuthKey_XXXXXXXXXX.p8
+    // "APNS_KEY_ID": "XXXXXXXXXX",
+    // "APNS_TEAM_ID": "XXXXXXXXXX",
+    // "APNS_TOPIC": "app.example.postflare",
+    // App Store page of the iOS app: the sign-in page offers "Sign in with the iPhone app" and "Get the app".
+    // "APP_STORE_URL": "https://apps.apple.com/app/id0000000000"
+  },
+  // "send_email": [{ "name": "EMAIL", "remote": true }],
+
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/", "/demo", "/privacy", "/privacy/", "/terms", "/terms/", "/data-deletion", "/data-deletion/", "/api/*", "/oauth/*", "/m/*", "/u/*", "/a/*", "/mcp", "/mcp/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "postflare", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "postflare-media" }
+  ],
+  "workflows": [
+    { "name": "postflare-publish", "binding": "PUBLISH_WORKFLOW", "class_name": "PublishWorkflow" }
+  ],
+  "images": { "binding": "IMAGES" },
+  "triggers": { "crons": ["*/5 * * * *"] }
+}

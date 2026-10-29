@@ -1,0 +1,33 @@
+// Bindings for the worker integration tests (vitest.workers.config.ts): wrangler.jsonc minus assets/routes/images.
+{
+  "name": "postflare-test",
+  "main": "../../worker/index.ts",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "postflare", "database_id": "test" },
+    { "binding": "LEGACY_DB", "database_name": "postflare-legacy", "database_id": "legacy" },
+    { "binding": "DEMO_DB", "database_name": "postflare-demo", "database_id": "demo" },
+    { "binding": "ANALYTICS_DB", "database_name": "postflare-analytics", "database_id": "analytics" },
+    { "binding": "SECURITY_DB", "database_name": "postflare-security", "database_id": "security" },
+    { "binding": "PUBLISH_DB", "database_name": "postflare-publish", "database_id": "publish" },
+    { "binding": "PLAYBOOKS_DB", "database_name": "postflare-playbooks", "database_id": "playbooks" },
+    { "binding": "DELETION_DB", "database_name": "postflare-deletion", "database_id": "deletion" },
+    { "binding": "CAMPAIGNS_DB", "database_name": "postflare-campaigns", "database_id": "campaigns" },
+    { "binding": "MAGIC_LINK_DB", "database_name": "postflare-magic-link", "database_id": "magic-link" },
+    { "binding": "BILLING_DB", "database_name": "postflare-billing", "database_id": "billing" },
+    { "binding": "WEBHOOKS_DB", "database_name": "postflare-webhooks", "database_id": "webhooks" },
+    { "binding": "SIGNUP_DB", "database_name": "postflare-signup", "database_id": "signup" },
+    { "binding": "TURNSTILE_DB", "database_name": "postflare-turnstile", "database_id": "turnstile" },
+    { "binding": "DEVICES_DB", "database_name": "postflare-devices", "database_id": "devices" },
+    { "binding": "PUSH_DB", "database_name": "postflare-push", "database_id": "push" },
+    { "binding": "APP_LOGIN_DB", "database_name": "postflare-app-login", "database_id": "app-login" },
+    { "binding": "MEDIA_CDN_DB", "database_name": "postflare-media-cdn", "database_id": "media-cdn" },
+    { "binding": "ACCESS_DB", "database_name": "postflare-access", "database_id": "access" },
+    { "binding": "LEGAL_DB", "database_name": "postflare-legal", "database_id": "legal" },
+    { "binding": "ACCOUNTS_DB", "database_name": "postflare-accounts", "database_id": "accounts" },
+    { "binding": "SUPPORT_DB", "database_name": "postflare-support", "database_id": "support" }
+  ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "postflare-media" }],
+  "workflows": [{ "name": "postflare-publish", "binding": "PUBLISH_WORKFLOW", "class_name": "PublishWorkflow" }]
+}
